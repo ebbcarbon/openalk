@@ -15,7 +15,7 @@ def write_cmd(port, base_cmd):
     # All cmds are preceeded by '/', then the address, which we always assume to be 1 here
     # all cmds are separated by a carriage return '\r'
     cmd = f'/1{cmd}\r'
-    length = port.write(f'{cmd}\r')
+    length = port.write(bytes(cmd, 'utf-8'))
     # verify that we actually wrote cmd
     assert length == len(cmd)
 
