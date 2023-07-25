@@ -16,8 +16,7 @@ class pHInterface:
         return self._device_functional
 
     def read_emf_pH(self):
-        """
-        """
+        """ """
         raise NotImplementedError("Use derived pH implementation class!")
 
 

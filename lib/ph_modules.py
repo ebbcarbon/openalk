@@ -19,7 +19,9 @@ class pH_meter_A211(pHInterface):
         """
         super().__init__()
 
-        self.serial = serial.Serial(serial_path, baudrate=BAUDRATE, bytesize=BYTESIZE, timeout=SERIAL_TIMEOUT_S)
+        self.serial = serial.Serial(
+            serial_path, baudrate=BAUDRATE, bytesize=BYTESIZE, timeout=SERIAL_TIMEOUT_S
+        )
 
         self._device_functional = True
 
@@ -56,7 +58,9 @@ class pH_meter_A215(pHInterface):
         """
         super().__init__()
 
-        self.serial = serial.Serial(serial_path, baudrate=BAUDRATE, bytesize=BYTESIZE, timeout=SERIAL_TIMEOUT_S)
+        self.serial = serial.Serial(
+            serial_path, baudrate=BAUDRATE, bytesize=BYTESIZE, timeout=SERIAL_TIMEOUT_S
+        )
 
         self._device_functional = True
 
@@ -87,6 +91,7 @@ class pH_meter_simulated(pHInterface):
     """
     simulated in case you don't have hardware
     """
+
     def __init__(self):
         super().__init__()
 

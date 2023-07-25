@@ -11,13 +11,13 @@ RES_SIXTEENTH = "1/16"
 RES_THIRTYSECOND = "1/32"
 
 RESOLUTION = {
-            RES_FULL: (0, 0, 0),
-            RES_HALF: (1, 0, 0),
-            RES_QUARTER: (0, 1, 0),
-            RES_EIGHTH: (1, 1, 0),
-            RES_SIXTEENTH: (0, 0, 1),
-            RES_THIRTYSECOND: (1, 0, 1),
-        }
+    RES_FULL: (0, 0, 0),
+    RES_HALF: (1, 0, 0),
+    RES_QUARTER: (0, 1, 0),
+    RES_EIGHTH: (1, 1, 0),
+    RES_SIXTEENTH: (0, 0, 1),
+    RES_THIRTYSECOND: (1, 0, 1),
+}
 
 
 class PumpRpi(PumpInterface):
@@ -26,6 +26,7 @@ class PumpRpi(PumpInterface):
     This class just defines the high-level operations of the pump
     Specific implementation classes should be used for devices
     """
+
     def __init__(self):
         super().__init__()
 
