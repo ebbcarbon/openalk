@@ -2,13 +2,14 @@ import tkinter as tk
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
 from datetime import datetime
 import RPi.GPIO as GPIO
 import serial
 import csv
 
-from . import *
+import pinSetup
+import readpH
+import classTitration
 
 
 class App(tk.Tk):
@@ -200,7 +201,7 @@ class App(tk.Tk):
         print(f"Number of Steps: {numSteps}")
         targetPos = self.syringePos - numSteps
 
-        if self.stopTitration == True:
+        if self.stopTitration:
             self.after_cancel(self)
             print("Titration Cancelled")
             return
