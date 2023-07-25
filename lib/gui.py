@@ -3,12 +3,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import datetime
-import serial
 import csv
 
-import readpH
 import classTitration
 import pump_interface
+import ph_modules
+
+PH_SERIAL_PORT = "/dev/ttyACM0"
 
 
 class App(tk.Tk):
@@ -68,15 +69,11 @@ class App(tk.Tk):
         self.pump = pump_interface.PumpInterface()
         self.pump.set_sleep_func(self.sleep_msecs)
 
+        self.ph_meter = ph_modules.pH_meter_A211(PH_SERIAL_PORT)
+
     def start(self):
 
         self.StartButton.configure(state=tk.DISABLED)
-
-        try:
-            self.s = serial.Serial("/dev/ttyACM0", baudrate=9600, bytesize=8, timeout=2)
-        except serial.SerialException:
-            print("Device Not Found!")
-            self.quitProgram()
 
         if self.Input1.get() == "":
             tk.messagebox.showerror("Error!", "Please insert mass of sample!")
@@ -98,7 +95,7 @@ class App(tk.Tk):
         else:
             salinity = float(self.Input3.get())
             self.Input3.configure(state=tk.DISABLED)
-        if readpH.readpH(self.s)[0] == "":
+        if not self.ph_meter.device_functional():
             tk.messagebox.showerror("Error", "Please check connectivity of pH meter!")
             self.StartButton.configure(state=tk.NORMAL)
             return
@@ -107,7 +104,7 @@ class App(tk.Tk):
             for line in f:
                 slope, intercept, efficiency = line.split(",")
 
-        emfi, pHi = float(readpH.readpH(self.s)[0]), float(readpH.readpH(self.s)[1])
+        emfi, pHi = self.ph_meter.read_emf_ph()
         print(f"Initial pH: {pHi}, Initial emfi: {emfi}.")
 
         titration = classTitration.Titration(
@@ -159,7 +156,7 @@ class App(tk.Tk):
             )
             self.pump.move_syringe(-1 * self.pump.syringe_pos, "1/4")
             self.sleep_msecs(15000)
-            emf, pH = float(readpH.readpH(self.s)[0]), float(readpH.readpH(self.s)[1])
+            emf, pH = self.ph_meter.read_emf_pH()
             print(f"pH: {pH}, syringePos: {self.pump.syringe_pos}")
             titration.pHs = np.append(titration.pHs, pH)
             titration.emf = np.append(titration.emf, emf)
@@ -172,7 +169,7 @@ class App(tk.Tk):
 
             self.pump.move_syringe(-1 * numSteps, "1/4")
             self.sleep_msecs(15000)
-            emf, pH = float(readpH.readpH(self.s)[0]), float(readpH.readpH(self.s)[1])
+            emf, pH = self.ph_meter.read_emf_pH()
             print(f"pH: {pH}, syringePos: {self.pump.syringe_pos}")
             titration.pHs = np.append(titration.pHs, pH)
             titration.emf = np.append(titration.emf, emf)
@@ -222,7 +219,7 @@ class App(tk.Tk):
             )
             self.pump.move_syringe(-1 * self.pump.syringe_pos, "1/4")
             self.sleep_msecs(12000)
-            emf, pH = float(readpH.readpH(self.s)[0]), float(readpH.readpH(self.s)[1])
+            emf, pH = self.ph_meter.read_emf_pH()
             print(f"pH: {pH}, syringePos: {self.syringePos}")
             titration.pHs = np.append(titration.pHs, pH)
             titration.emf = np.append(titration.emf, emf)
@@ -235,7 +232,7 @@ class App(tk.Tk):
 
             self.pump.move_syringe(-1 * numSteps, "1/4")
             self.sleep_msecs(12000)
-            emf, pH = float(readpH.readpH(self.s)[0]), float(readpH.readpH(self.s)[1])
+            emf, pH = self.ph_meter.read_emf_pH()
             print(f"pH: {pH}, syringePos: {self.pump.syringe_pos}")
             titration.pHs = np.append(titration.pHs, pH)
             titration.emf = np.append(titration.emf, emf)
@@ -248,7 +245,6 @@ class App(tk.Tk):
             self.after(1000, lambda: self.auto_titration(titration))
             return
 
-
     def sleep_msecs(self, t):
         """
         Sleep for t milliseconds
@@ -259,8 +255,6 @@ class App(tk.Tk):
         self.after(t, var.set, 1)
         self.wait_variable(var)
 
-        return
-
     def plot(self, x, y):
 
         # print(f'Plotting: {x}, {y}')
@@ -269,7 +263,6 @@ class App(tk.Tk):
             self.ax.scatter(x[2:], y[2:], color="blue")
             self.ax.autoscale()
             self.canvas.draw()
-
 
     def cancel_titration(self):
 
