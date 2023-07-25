@@ -105,5 +105,5 @@ class pH_meter_simulated(pHInterface):
     def read_emf_pH(self):
 
         emf = random.uniform(0.1, 1.0)
-        pH = random.uniform(3.9, 4.5)
+        pH = random.uniform(3.5, 4.2)
         return emf, pH

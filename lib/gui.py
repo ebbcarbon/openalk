@@ -223,7 +223,7 @@ class App(tk.Tk):
             self.pump.move_syringe(-1 * self.pump.syringe_pos, "1/4")
             self.sleep_msecs(12000)
             emf, pH = self.ph_meter.read_emf_pH()
-            print(f"pH: {pH}, syringePos: {self.syringePos}")
+            print(f"pH: {pH}, syringePos: {self.pump.syringe_pos}")
             titration.pHs = np.append(titration.pHs, pH)
             titration.emf = np.append(titration.emf, emf)
             self.pump.fill()
