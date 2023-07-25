@@ -1,3 +1,6 @@
+import random
+import time
+
 import serial
 
 from .ph_interface import pHInterface
@@ -95,7 +98,12 @@ class pH_meter_simulated(pHInterface):
     def __init__(self):
         super().__init__()
 
+        random.seed(time.time())
+
         self._device_functional = True
 
     def read_emf_pH(self):
-        return 31.2, 4.1
+
+        emf = random.uniform(0.1, 1.0)
+        pH = random.uniform(3.9, 4.5)
+        return emf, pH

@@ -5,9 +5,9 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import datetime
 import csv
 
-import classTitration
-import pump_interface
-import ph_modules
+from . import classTitration
+from . import pump_interface
+from . import ph_modules
 
 PH_SERIAL_PORT = "/dev/ttyACM0"
 
@@ -15,6 +15,12 @@ PH_SERIAL_PORT = "/dev/ttyACM0"
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
+
+        self.pump = pump_interface.PumpInterface()
+        self.pump.set_sleep_func(self.sleep_msecs)
+
+        # self.ph_meter = ph_modules.pH_meter_A211(PH_SERIAL_PORT)
+        self.ph_meter = ph_modules.pH_meter_simulated()
 
         self.title("Total Alkalinity")
         self.geometry("1200x500")
@@ -33,13 +39,13 @@ class App(tk.Tk):
             self, text="Start", bg="green", padx=20, command=self.start
         )
         ExitButton = tk.Button(
-            self, text="Exit", bg="red", padx=20, command=self.quitProgram
+            self, text="Exit", bg="red", padx=20, command=self.quit_program
         )
 
         Button1 = tk.Button(self, text="Reset", padx=20, command=self.reset)
-        Button2 = tk.Button(self, text="Fill", padx=20, command=self.fill)
-        Button3 = tk.Button(self, text="Empty", padx=20, command=self.empty)
-        Button4 = tk.Button(self, text="Wash", padx=20, command=self.wash)
+        Button2 = tk.Button(self, text="Fill", padx=20, command=self.pump.fill)
+        Button3 = tk.Button(self, text="Empty", padx=20, command=self.pump.empty)
+        Button4 = tk.Button(self, text="Wash", padx=20, command=self.pump.wash)
 
         MassLabel.grid(row=0, column=0, sticky="NSEW")
         self.Input1.grid(row=1, column=0)
@@ -66,10 +72,6 @@ class App(tk.Tk):
             row=0, column=2, rowspan=4, columnspan=3, sticky="NSEW"
         )
         self.canvas.draw()
-        self.pump = pump_interface.PumpInterface()
-        self.pump.set_sleep_func(self.sleep_msecs)
-
-        self.ph_meter = ph_modules.pH_meter_A211(PH_SERIAL_PORT)
 
     def start(self):
 
@@ -100,11 +102,12 @@ class App(tk.Tk):
             self.StartButton.configure(state=tk.NORMAL)
             return
 
-        with open("data/electrodeCalibData.csv") as f:
-            for line in f:
-                slope, intercept, efficiency = line.split(",")
+        # This isn't used at the moment -- need to implement this
+        # with open("data/electrodeCalibData.csv") as f:
+        #     for line in f:
+        #         slope, intercept, efficiency = line.split(",")
 
-        emfi, pHi = self.ph_meter.read_emf_ph()
+        emfi, pHi = self.ph_meter.read_emf_pH()
         print(f"Initial pH: {pHi}, Initial emfi: {emfi}.")
 
         titration = classTitration.Titration(
@@ -124,7 +127,7 @@ class App(tk.Tk):
 
         self.Output.delete(0, tk.END)
 
-        self.fill()
+        self.pump.fill()
 
         self.update()
         self.after(1000, lambda: self.initial_titration(titration))
@@ -160,7 +163,7 @@ class App(tk.Tk):
             print(f"pH: {pH}, syringePos: {self.pump.syringe_pos}")
             titration.pHs = np.append(titration.pHs, pH)
             titration.emf = np.append(titration.emf, emf)
-            self.fill()
+            self.pump.fill()
 
             self.after(1000, lambda: self.initial_titration(titration))
             return
@@ -209,7 +212,7 @@ class App(tk.Tk):
             self.Output.delete(0, tk.END)
             self.Output.insert(0, str(TA))
             self.Output.configure(state=tk.DISABLED)
-            self.writeData(titration, TA)
+            self.write_data(titration, TA)
             return
 
         if targetPos <= 0:
@@ -223,7 +226,7 @@ class App(tk.Tk):
             print(f"pH: {pH}, syringePos: {self.syringePos}")
             titration.pHs = np.append(titration.pHs, pH)
             titration.emf = np.append(titration.emf, emf)
-            self.fill()
+            self.pump.fill()
 
             self.after(1000, lambda: self.auto_titration(titration))
             return
@@ -269,7 +272,7 @@ class App(tk.Tk):
         print("Stopping next titration step ...")
         self.stop_titration = True
 
-    def writeData(self, titration, TA):
+    def write_data(self, titration, TA):
 
         filename = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
 
@@ -288,8 +291,6 @@ class App(tk.Tk):
 
         self.reset()
 
-        return
-
     def reset(self):
 
         self.StartButton.configure(state=tk.NORMAL)
@@ -306,11 +307,8 @@ class App(tk.Tk):
 
         self.ax.clear()
 
-        return
+    def quit_program(self):
 
-    def quitProgram(self):
-
-        self.empty()
+        self.pump.empty()
         self.destroy()
 
-        return
