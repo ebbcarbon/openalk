@@ -3,13 +3,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import datetime
-import RPi.GPIO as GPIO
 import serial
 import csv
 
-import pinSetup
 import readpH
 import classTitration
+import pump_interface
 
 
 class App(tk.Tk):
@@ -66,10 +65,8 @@ class App(tk.Tk):
             row=0, column=2, rowspan=4, columnspan=3, sticky="NSEW"
         )
         self.canvas.draw()
-
-        self.syringePos = 0
-
-        self.pins = pinSetup.Pins()
+        self.pump = pump_interface.PumpInterface()
+        self.pump.set_sleep_func(self.sleep_msecs)
 
     def start(self):
 
@@ -121,10 +118,10 @@ class App(tk.Tk):
             self, text="Titration Started!", fg="green", pady=10
         )
         self.StartedLabel.grid(row=5, column=0)
-        self.stopTitration = False
+        self.stop_titration = False
 
         self.StopButton = tk.Button(
-            self, text="Stop Titration", padx=10, command=self.cancelTitration
+            self, text="Stop Titration", padx=10, command=self.cancel_titration
         )
         self.StopButton.grid(row=5, column=1)
 
@@ -133,15 +130,15 @@ class App(tk.Tk):
         self.fill()
 
         self.update()
-        self.after(1000, lambda: self.InitialTitration(titration))
+        self.after(1000, lambda: self.initial_titration(titration))
 
-    def InitialTitration(self, titration):
+    def initial_titration(self, titration):
 
         if titration.pHs[-1] < 3.8:
 
             print("\nMoving to Second Step\n")
             self.after_cancel(self)
-            self.AutoTitration(titration)
+            self.auto_titration(titration)
 
             return
 
@@ -152,32 +149,31 @@ class App(tk.Tk):
         print(f"Required Vol: {acidVol}")
         numSteps = int(acidVol / syringeStep)
         print(f"Number of Steps: {numSteps}")
-        targetPos = self.syringePos - numSteps
+        targetPos = self.pump.syringe_pos - numSteps
 
         if targetPos <= 0:
-            GPIO.output(self.pins.CHANGE, GPIO.LOW)
+
             titration.volumeAdded = np.append(
                 titration.volumeAdded,
-                titration.volumeAdded[-1] + syringeStep * self.syringePos,
+                titration.volumeAdded[-1] + syringeStep * self.pump.syringe_pos,
             )
-            self.MoveSyringe(-1 * self.syringePos, self.pins, "1/4")
-            self.tksleep(15000)
+            self.pump.move_syringe(-1 * self.pump.syringe_pos, "1/4")
+            self.sleep_msecs(15000)
             emf, pH = float(readpH.readpH(self.s)[0]), float(readpH.readpH(self.s)[1])
-            print(f"pH: {pH}, syringePos: {self.syringePos}")
+            print(f"pH: {pH}, syringePos: {self.pump.syringe_pos}")
             titration.pHs = np.append(titration.pHs, pH)
             titration.emf = np.append(titration.emf, emf)
             self.fill()
 
-            self.after(1000, lambda: self.InitialTitration(titration))
+            self.after(1000, lambda: self.initial_titration(titration))
             return
 
         elif targetPos > 0:  # move to position
 
-            GPIO.output(self.pins.CHANGE, GPIO.LOW)
-            self.MoveSyringe(-1 * numSteps, self.pins, "1/4")
-            self.tksleep(15000)
+            self.pump.move_syringe(-1 * numSteps, "1/4")
+            self.sleep_msecs(15000)
             emf, pH = float(readpH.readpH(self.s)[0]), float(readpH.readpH(self.s)[1])
-            print(f"pH: {pH}, syringePos: {self.syringePos}")
+            print(f"pH: {pH}, syringePos: {self.pump.syringe_pos}")
             titration.pHs = np.append(titration.pHs, pH)
             titration.emf = np.append(titration.emf, emf)
             titration.volumeAdded = np.append(
@@ -186,10 +182,10 @@ class App(tk.Tk):
             )
             self.plot(titration.volumeAdded, titration.emf)
 
-            self.after(1000, lambda: self.InitialTitration(titration))
+            self.after(1000, lambda: self.initial_titration(titration))
             return
 
-    def AutoTitration(self, titration):
+    def auto_titration(self, titration):
 
         pHi = titration.pHs[-1]
         pHf = pHi - 0.1
@@ -199,9 +195,9 @@ class App(tk.Tk):
         print(f"Required Vol: {acidVol}")
         numSteps = int(acidVol / syringeStep)
         print(f"Number of Steps: {numSteps}")
-        targetPos = self.syringePos - numSteps
+        targetPos = self.pump.syringe_pos - numSteps
 
-        if self.stopTitration:
+        if self.stop_titration:
             self.after_cancel(self)
             print("Titration Cancelled")
             return
@@ -220,29 +216,27 @@ class App(tk.Tk):
             return
 
         if targetPos <= 0:
-            GPIO.output(self.pins.CHANGE, GPIO.LOW)
             titration.volumeAdded = np.append(
                 titration.volumeAdded,
-                titration.volumeAdded[-1] + syringeStep * self.syringePos,
+                titration.volumeAdded[-1] + syringeStep * self.pump.syringe_pos,
             )
-            self.MoveSyringe(-1 * self.syringePos, self.pins, "1/4")
-            self.tksleep(12000)
+            self.pump.move_syringe(-1 * self.pump.syringe_pos, "1/4")
+            self.sleep_msecs(12000)
             emf, pH = float(readpH.readpH(self.s)[0]), float(readpH.readpH(self.s)[1])
             print(f"pH: {pH}, syringePos: {self.syringePos}")
             titration.pHs = np.append(titration.pHs, pH)
             titration.emf = np.append(titration.emf, emf)
             self.fill()
 
-            self.after(1000, lambda: self.AutoTitration(titration))
+            self.after(1000, lambda: self.auto_titration(titration))
             return
 
         elif targetPos > 0:  # move to position
 
-            GPIO.output(self.pins.CHANGE, GPIO.LOW)
-            self.MoveSyringe(-1 * numSteps, self.pins, "1/4")
-            self.tksleep(12000)
+            self.pump.move_syringe(-1 * numSteps, "1/4")
+            self.sleep_msecs(12000)
             emf, pH = float(readpH.readpH(self.s)[0]), float(readpH.readpH(self.s)[1])
-            print(f"pH: {pH}, syringePos: {self.syringePos}")
+            print(f"pH: {pH}, syringePos: {self.pump.syringe_pos}")
             titration.pHs = np.append(titration.pHs, pH)
             titration.emf = np.append(titration.emf, emf)
             titration.volumeAdded = np.append(
@@ -251,43 +245,16 @@ class App(tk.Tk):
             )
             self.plot(titration.volumeAdded, titration.emf)
 
-            self.after(1000, lambda: self.AutoTitration(titration))
+            self.after(1000, lambda: self.auto_titration(titration))
             return
 
-    def MoveSyringe(self, step_count, pins, resolution):
 
-        if step_count > 0:
-            direction = 1
-        else:
-            direction = 0
+    def sleep_msecs(self, t):
+        """
+        Sleep for t milliseconds
+        """
 
-        self.syringePos = self.syringePos + step_count
-
-        step_count = abs(step_count)
-        RESOLUTION = {
-            "Full": (0, 0, 0),
-            "Half": (1, 0, 0),
-            "1/4": (0, 1, 0),
-            "1/8": (1, 1, 0),
-            "1/16": (0, 0, 1),
-            "1/32": (1, 0, 1),
-        }
-        GPIO.output(pins.MODE, RESOLUTION[resolution])
-
-        GPIO.output(pins.DIR, direction)
-        for x in range(step_count):
-
-            GPIO.output(pins.STEP, GPIO.HIGH)
-            self.tksleep(1)
-            GPIO.output(pins.STEP, GPIO.LOW)
-            self.tksleep(1)
-
-        return
-
-    def tksleep(self, t):
-
-        # waits for t milliseconds
-
+        # tkApp wants to do things this way, don't just use time.sleep()!
         var = tk.IntVar(self)
         self.after(t, var.set, 1)
         self.wait_variable(var)
@@ -303,39 +270,11 @@ class App(tk.Tk):
             self.ax.autoscale()
             self.canvas.draw()
 
-        return
 
-    def fill(self):
-
-        GPIO.output(self.pins.CHANGE, GPIO.HIGH)
-        self.MoveSyringe(7000 - int(self.syringePos / 4), self.pins, "Full")
-
-        return
-
-    def empty(self):
-
-        GPIO.output(self.pins.CHANGE, GPIO.LOW)
-        self.MoveSyringe(-1 * self.syringePos, self.pins, "Full")
-
-        return
-
-    def wash(self):
-
-        self.fill()
-        self.empty()
-        self.fill()
-        self.empty()
-        self.fill()
-        self.empty()
-
-        return
-
-    def cancelTitration(self):
+    def cancel_titration(self):
 
         print("Stopping next titration step ...")
-        self.stopTitration = True
-
-        return
+        self.stop_titration = True
 
     def writeData(self, titration, TA):
 
