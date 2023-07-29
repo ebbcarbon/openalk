@@ -18,5 +18,10 @@ def readpH(s):
                     emf = arr[i - 1]
                     pH = arr[i - 3]
                     return emf, pH
+                if serialString.find("\rA215 pH/Cond") != -1:
+                    i = arr.index(" mV")
+                    emf = arr[i - 1]
+                    pH = arr[i - 3]
+                    return emf, pH
             except:
                 pass
