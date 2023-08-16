@@ -80,8 +80,7 @@ class pH_meter_A215(pHInterface):
                 try:
                     serial_string = serial_string.decode("Ascii")
                     arr = serial_string.split(",")
-                    # TODO: THIS CODE WON'T WORK FOR THIS MODULE
-                    if serial_string.find("\rA215") != -1:
+                    if serial_string.find("\rA215 pH/Cond") != -1:
                         i = arr.index(" mV")
                         emf = arr[i - 1]
                         pH = arr[i - 3]

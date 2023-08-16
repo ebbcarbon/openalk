@@ -1,7 +1,7 @@
 import serial
 import time
 
-PUMP_PORT = "/dev/ttyUSB1"
+PUMP_PORT = "/dev/ttyUSB1" #subject to change depending on the type of computer being used
 BAUD_RATE = 9600
 SERIAL_TIMEOUT = 2
 
