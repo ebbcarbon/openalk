@@ -3,15 +3,15 @@ from . import RSQ
 
 
 class Titration(object):
-    def __init__(self, sampleSize, S, T, pHs, emf, volumeAdded):
-        self.sampleSize = sampleSize / 1000
+    def __init__(self, sample_size, S, T, pHs, emf, volume_added):
+        self.sample_size = sample_size / 1000 #to convert into grams
         self.S = S
-        self.T = T + 273.15
+        self.T = T + 273.15 #to convert into Kelvin
         self.pHs = pHs
         self.emf = emf
-        self.volumeAdded = volumeAdded
+        self.volume_added = volume_added
 
-    def requiredVol(self, Cacid, pHf):
+    def RequiredVol(self, conc_acid, pH_f):
 
         I = 19.924 * self.S / (1000 - 1.005 * self.S)  # ionic strength
         pK1c = (
@@ -62,47 +62,47 @@ class Titration(object):
             + K1c * K2c
         )
         denumCf = (
-            np.square(np.power(10, -1 * pHf)) + K1c * np.power(10, -1 * pHf) + K1c * K2c
+            np.square(np.power(10, -1 * pH_f)) + K1c * np.power(10, -1 * pH_f) + K1c * K2c
         )
         alphaC1init = K1c * np.power(10, -1 * self.pHs[-1]) / denumCinit
         alphaC2init = np.square(K1c * K2c) / denumCinit
         C_alk_i = DIC * (2 * alphaC2init + alphaC1init)
-        alphaC1f = K1c * np.power(10, -1 * pHf) / denumCf
+        alphaC1f = K1c * np.power(10, -1 * pH_f) / denumCf
         alphaC2f = np.square(K1c * K2c) / denumCf
         C_alk_f = DIC * (2 * alphaC2f + alphaC1f)
         BAi = TB * (KB / (KB + np.power(10, -1 * self.pHs[-1])))
-        BAf = TB * (KB / (KB + np.power(10, -1 * pHf)))
-        acidVol = (
-            self.sampleSize
-            / Cacid
+        BAf = TB * (KB / (KB + np.power(10, -1 * pH_f)))
+        acid_vol = (
+            self.sample_size
+            / conc_acid
             * (
-                np.power(10, -1 * pHf)
+                np.power(10, -1 * pH_f)
                 - np.power(10, -1 * self.pHs[-1])
                 - (C_alk_f - C_alk_i)
                 - (BAf - BAi)
                 - Kw
                 * (
-                    np.reciprocal(np.power(10, -1 * pHf))
+                    np.reciprocal(np.power(10, -1 * pH_f))
                     - np.reciprocal(np.power(10, -1 * self.pHs[-1]))
                 )
             )
         )
 
-        return acidVol
+        return acid_vol
 
-    def granCalc(self, Cacid):
+    def GranCalc(self, conc_acid):
 
-        volumes = self.volumeAdded[self.pHs < 3.8]  # need to be numpy arrays
+        volumes = self.volume_added[self.pHs < 3.8]  # need to be numpy arrays
         pHs = self.pHs[self.pHs < 3.8]
         pH_modified = np.power(10, np.multiply(-1, pHs))
 
-        ygran = np.multiply(np.add(self.sampleSize, volumes), pH_modified)
+        ygran = np.multiply(np.add(self.sample_size, volumes), pH_modified)
 
         slope, intercept, xModel, yModel, rsquare = RSQ.RSQ(volumes, ygran)
-        gamma = slope / Cacid
+        gamma = slope / conc_acid
         Veq = -1 * intercept / slope
-        molIn = Veq * Cacid
+        molIn = Veq * conc_acid
 
-        TA = molIn / self.sampleSize * 1000000
+        TA = molIn / self.sample_size * 1000000
 
         return TA, gamma, rsquare
