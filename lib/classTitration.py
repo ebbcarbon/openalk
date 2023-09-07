@@ -1,5 +1,5 @@
 import numpy as np
-from . import RSQ
+from lib.config import rsq
 
 
 class Titration(object):
@@ -98,7 +98,7 @@ class Titration(object):
 
         ygran = np.multiply(np.add(self.sampleSize, volumes), pH_modified)
 
-        slope, intercept, xModel, yModel, rsquare = RSQ.RSQ(volumes, ygran)
+        slope, intercept, xModel, yModel, rsquare = rsq.RSQ(volumes, ygran)
         gamma = slope / Cacid
         Veq = -1 * intercept / slope
         molIn = Veq * Cacid
