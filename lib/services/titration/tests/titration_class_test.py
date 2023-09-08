@@ -14,4 +14,9 @@ def test_titration_method_1(mock_required_vol):
     """
     mock_required_vol.return_value = 4
     # Parameter inputs here are dummy inputs
-    assert Titration(sampleSize=1, S=2, T=3, pHs=4, emf=5, volumeAdded=6).requiredVol(Cacid=7, pHf=8) == 4
+    assert (
+        Titration(sampleSize=1, S=2, T=3, pHs=4, emf=5, volumeAdded=6).requiredVol(
+            Cacid=7, pHf=8
+        )
+        == 4
+    )

@@ -2,16 +2,13 @@ import numpy as np
 
 
 def RSQ(x, y):
-
     x = np.expand_dims(x, axis=0)
     y = np.expand_dims(y, axis=0)
 
     if x.shape[1] > x.shape[0]:
-
         x = np.transpose(x)
 
     if y.shape[1] > y.shape[0]:
-
         y = np.transpose(y)
 
     workMatrix = np.zeros((x.shape[0], 6))

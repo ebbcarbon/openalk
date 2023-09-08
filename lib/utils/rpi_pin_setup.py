@@ -3,7 +3,6 @@ import RPi.GPIO as GPIO
 
 class Pins:
     def __init__(self):
-
         GPIO.setwarnings(False)
 
         self.DIR = 20

@@ -74,7 +74,6 @@ class App(tk.Tk):
         self.canvas.draw()
 
     def start(self):
-
         self.StartButton.configure(state=tk.DISABLED)
 
         if self.Input1.get() == "":
@@ -133,9 +132,7 @@ class App(tk.Tk):
         self.after(1000, lambda: self.initial_titration(titration))
 
     def initial_titration(self, titration):
-
         if titration.pHs[-1] < 3.8:
-
             print("\nMoving to Second Step\n")
             self.after_cancel(self)
             self.auto_titration(titration)
@@ -152,7 +149,6 @@ class App(tk.Tk):
         targetPos = self.pump.syringe_pos - numSteps
 
         if targetPos <= 0:
-
             titration.volumeAdded = np.append(
                 titration.volumeAdded,
                 titration.volumeAdded[-1] + syringeStep * self.pump.syringe_pos,
@@ -169,7 +165,6 @@ class App(tk.Tk):
             return
 
         elif targetPos > 0:  # move to position
-
             self.pump.move_syringe(-1 * numSteps, "1/4")
             self.sleep_msecs(15000)
             emf, pH = self.ph_meter.read_emf_pH()
@@ -186,7 +181,6 @@ class App(tk.Tk):
             return
 
     def auto_titration(self, titration):
-
         pHi = titration.pHs[-1]
         pHf = pHi - 0.1
         Cacid = 0.09760158624
@@ -203,7 +197,6 @@ class App(tk.Tk):
             return
 
         if titration.pHs[-1] < 3 or len(titration.pHs) > 25:
-
             self.after_cancel(self)
             print(f"Final pH: {titration.pHs[-1]}")
             TA, gamma, rsquare = titration.granCalc(0.09760158624)
@@ -232,7 +225,6 @@ class App(tk.Tk):
             return
 
         elif targetPos > 0:  # move to position
-
             self.pump.move_syringe(-1 * numSteps, "1/4")
             self.sleep_msecs(12000)
             emf, pH = self.ph_meter.read_emf_pH()
@@ -259,7 +251,6 @@ class App(tk.Tk):
         self.wait_variable(var)
 
     def plot(self, x, y):
-
         # print(f'Plotting: {x}, {y}')
 
         if len(x) >= 3:
@@ -268,16 +259,13 @@ class App(tk.Tk):
             self.canvas.draw()
 
     def cancel_titration(self):
-
         print("Stopping next titration step ...")
         self.stop_titration = True
 
     def write_data(self, titration, TA):
-
         filename = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
 
         with open("data/" + filename + ".csv", "w") as f:
-
             writer = csv.writer(f, delimiter=",")
             writer.writerow(["Sample Size (g):"] + [str(titration.sampleSize * 1000)])
             writer.writerow(["Temperature (C):"] + [str(titration.T - 273.15)])
@@ -292,7 +280,6 @@ class App(tk.Tk):
         self.reset()
 
     def reset(self):
-
         self.StartButton.configure(state=tk.NORMAL)
         self.Input1.configure(state=tk.NORMAL)
         self.Input2.configure(state=tk.NORMAL)
@@ -308,6 +295,5 @@ class App(tk.Tk):
         self.ax.clear()
 
     def quit_program(self):
-
         self.pump.empty()
         self.destroy()
