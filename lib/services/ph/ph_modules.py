@@ -3,7 +3,7 @@ import time
 
 import serial
 
-from .ph_interface import pHInterface
+from lib.services.ph.ph_interface import pHInterface
 
 
 BAUDRATE = 9600

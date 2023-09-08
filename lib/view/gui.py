@@ -5,9 +5,9 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import datetime
 import csv
 
-from .. import classTitration
-from .. import pump_interface
-from .. import ph_modules
+from lib.services.titration import titration_class
+from lib.services.pump import pump_interface
+from lib.services.ph import ph_modules
 
 PH_SERIAL_PORT = "/dev/ttyACM0"
 
@@ -110,7 +110,7 @@ class App(tk.Tk):
         emfi, pHi = self.ph_meter.read_emf_pH()
         print(f"Initial pH: {pHi}, Initial emfi: {emfi}.")
 
-        titration = classTitration.Titration(
+        titration = titration_class.Titration(
             sampleSize, salinity, temp, np.array([pHi]), np.array([emfi]), np.array([0])
         )
 
