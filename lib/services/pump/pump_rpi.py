@@ -1,7 +1,7 @@
 import RPi.GPIO as GPIO
 
 from lib.services.pump.pump_interface import PumpInterface
-from lib.config import rpi_pin_setup
+from lib.utils import rpi_pin_setup
 
 RES_FULL = "Full"
 RES_HALF = "Half"

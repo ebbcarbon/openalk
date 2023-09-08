@@ -1,5 +1,5 @@
 import numpy as np
-from lib.config import rsq
+from lib.utils import rsq
 
 
 class Titration(object):
