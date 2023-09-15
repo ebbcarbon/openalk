@@ -3,7 +3,7 @@ import time
 
 import serial
 
-from .ph_interface import pHInterface
+from lib.services.ph.ph_interface import pHInterface
 
 
 BAUDRATE = 9600
@@ -103,7 +103,6 @@ class pH_meter_simulated(pHInterface):
         self._device_functional = True
 
     def read_emf_pH(self):
-
         emf = random.uniform(0.1, 1.0)
         pH = random.uniform(3.5, 4.2)
         return emf, pH
