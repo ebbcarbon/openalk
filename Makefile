@@ -1,12 +1,12 @@
 test:
-	pytest
+	python -m pytest
 
 lint:
 	black .
 	flake8 .
 
 install:
-	pip3 install -r requirements.txt
+	pip install -r requirements.txt
 
 install-dev:
-	pip3 install -r requirements-dev.txt
+	pip install -r requirements-dev.txt
