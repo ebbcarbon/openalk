@@ -1,16 +1,19 @@
-import tkinter as tk
-import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from datetime import datetime
+# Standard libraries
 import csv
+import tkinter as tk
+from datetime import datetime
 
+# Third-party libraries
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+# Local libraries
 from lib.services.titration import titration_class
 from lib.services.pump import pump_interface
 from lib.services.ph import ph_modules
 
 PH_SERIAL_PORT = "/dev/ttyACM0"
-
 
 class App(tk.Tk):
     def __init__(self):
@@ -41,6 +44,8 @@ class App(tk.Tk):
         ExitButton = tk.Button(
             self, text="Exit", bg="red", padx=20, command=self.quit_program
         )
+
+        wm_exit_handler = self.protocol("WM_DELETE_WINDOW", self.quit_program)
 
         Button1 = tk.Button(self, text="Reset", padx=20, command=self.reset)
         Button2 = tk.Button(self, text="Fill", padx=20, command=self.pump.fill)
@@ -296,4 +301,4 @@ class App(tk.Tk):
 
     def quit_program(self):
         self.pump.empty()
-        self.destroy()
+        self.quit()
