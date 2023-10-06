@@ -11,8 +11,10 @@ class PumpInterface:
     def __init__(self):
         self.syringe_pos = None
         self.valve_state = None
-        self.steps_to_ml_factor = None
         self._sleep_func = None
+        
+        # Conversion factor from mL to steps on the syringe
+        self.ML_TO_STEPS_FACTOR = None
 
     def initialize_pump(self):
         """
@@ -68,15 +70,13 @@ class PumpInterface:
 
     def aspirate(self, steps, port):
         """
-        Draw solution into syringe, specify number of steps and
-        input port.
+        Draw solution into syringe through the input port.
         """
         pass
 
     def dispense(self, steps, port):
         """
-        Dispense solution from syringe, specify number of steps and
-        output port.
+        Dispense solution from syringe through the output port.
         """
         pass
 

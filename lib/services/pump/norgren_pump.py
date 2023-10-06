@@ -45,7 +45,7 @@ class NorgrenPump(PumpInterface):
         self.BAUD_RATE = 9600
         self.SERIAL_TIMEOUT = 2
 
-        self.steps_to_ml_factor = None
+        self.ML_TO_STEPS_FACTOR = None
         self.WASH_CYCLES = 3
 
         self.SYRINGE_POSITION_MIN = 0
