@@ -190,7 +190,7 @@ class NorgrenPump(PumpInterface):
         return self.check_response(res_bytes_cleaned)
 
     def build_serial_command(self, cmd: str) -> bytes:
-        """Uses Norgren-spcific string formatting and converts to bytes"""
+        """Uses Norgren-specific string formatting and converts to bytes"""
         return f"/1{cmd}\r".encode("ascii")
 
     def check_response(self, res: bytes) -> dict:
