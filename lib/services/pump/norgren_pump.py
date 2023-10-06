@@ -1,6 +1,6 @@
 import time
 import serial
-from enum import Enum, auto
+from enum import Enum, unique
 
 from lib.services.pump.pump_interface import PumpInterface
 
@@ -30,16 +30,11 @@ Queries (do not require an "R")
 "?8" queries valve status, with 1 == input, 2 == bypass, 3 == output
 """
 
-
+@unique
 class ValveStates(Enum):
     INPUT = 1
     BYPASS = 2
     OUTPUT = 3
-
-class ValvePorts(Enum):
-    A = auto()
-    B = auto()
-    S = auto()
 
 
 class NorgrenPump(PumpInterface):
@@ -51,9 +46,12 @@ class NorgrenPump(PumpInterface):
         self.SERIAL_TIMEOUT = 2
 
         self.steps_to_ml_factor = None
+        self.WASH_CYCLES = 3
 
         self.SYRINGE_POSITION_MIN = 0
         self.SYRINGE_POSITION_MAX = 48000
+        self.SYRINGE_POSITION_RANGE = range(self.SYRINGE_POSITION_MIN,
+                                            self.SYRINGE_POSITION_MAX + 1)
 
         """ Most of these parameters are defined in the pump manual """
         self.serial_port = serial.Serial(
@@ -64,34 +62,42 @@ class NorgrenPump(PumpInterface):
             stopbits = serial.STOPBITS_ONE,
             timeout = self.SERIAL_TIMEOUT
         )
+        print(f"Serial port open: {self.serial_port}")
 
     def initialize_pump(self) -> dict:
         cmd = "W4R"
         res_dict = self.send_pump_command(cmd)
         return res_dict
 
+    def check_module_ready(self) -> bool:
+        cmd = ""
+        res_dict = self.send_pump_command(cmd)
+        return res_dict["module_ready"]
+
     def get_syringe_position(self) -> int:
-        """Need to parse response to return int syringe position"""
         cmd = "?"
         res_dict = self.send_pump_command(cmd)
-        print(res_dict)
-        return
+        syringe_position = int(res_dict["msg"])
+        return syringe_position
 
     def set_syringe_position(self, pos: int) -> dict:
-        """Need to make sure 'pos' is within the acceptable range"""
+        if not pos in self.SYRINGE_POSITION_RANGE:
+            raise ValueError(f"Invalid position {pos}.")
+
         cmd = f"A{pos}R"
         res_dict = self.send_pump_command(cmd)
         return res_dict
 
     def get_valve_state(self) -> ValveStates:
-        """Need to parse response to return ValveState"""
         cmd = "?8"
         res_dict = self.send_pump_command(cmd)
-        print(res_dict)
-        return
+        valve_state_raw = int(res_dict['msg'])
+        return ValveStates(valve_state_raw)
 
     def set_valve_state(self, state: ValveStates) -> dict:
-        """Need to make sure 'state' is valid"""
+        if not type(state) == ValveStates:
+            raise ValueError(f"Invalid state {state}.")
+
         if state == ValveStates.INPUT:
             cmd = "IR"
         if state == ValveStates.BYPASS:
@@ -102,45 +108,69 @@ class NorgrenPump(PumpInterface):
         return res_dict
 
     def fill_syringe(self) -> dict:
-        """From where?"""
+        valve_state = self.get_valve_state()
+        if not valve_state == ValveStates.INPUT:
+            set = self.set_valve_state(state=ValveStates.INPUT)
+
+        while not self.check_module_ready():
+            time.sleep(0.25)
+
         cmd = f"A{self.SYRINGE_POSITION_MAX}R"
         res_dict = self.send_pump_command(cmd)
         return res_dict
 
     def empty_syringe(self) -> dict:
-        """To where?"""
+        valve_state = self.get_valve_state()
+        if not valve_state == ValveStates.OUTPUT:
+            set = self.set_valve_state(state=ValveStates.OUTPUT)
+
+        while not self.check_module_ready():
+            time.sleep(0.25)
+
         cmd = f"A{self.SYRINGE_POSITION_MIN}R"
         res_dict = self.send_pump_command(cmd)
         return res_dict
 
     def wash_syringe(self) -> dict:
-        """With what?"""
-        wash_cycles = 3
-        """TODO: blocking logic here"""
-        for _ in range(wash_cycles):
+        last_res = None
+        for _ in range(self.WASH_CYCLES):
             fill_res_dict = self.fill_syringe()
-            empty_res_dict = self.empty_syringe()
-        return {}
+            last_res = fill_res_dict
+            while not self.check_module_ready():
+                time.sleep(0.25)
 
-    def aspirate(self, steps: int, port: ValvePorts) -> dict:
-        """From where?"""
-        """Need to make sure 'steps' and 'port' are valid"""
+            empty_res_dict = self.empty_syringe()
+            last_res = empty_res_dict
+            while not self.check_module_ready():
+                time.sleep(0.25)
+        return last_res
+
+    def aspirate(self, steps: int) -> dict:
+        if not steps in self.SYRINGE_POSITION_RANGE:
+            raise ValueError(f"Invalid position {steps}.")
+
+        valve_state = self.get_valve_state()
+        if not valve_state == ValveStates.INPUT:
+            set = self.set_valve_state(state=ValveStates.INPUT)
+
+        while not self.check_module_ready():
+            time.sleep(0.25)
+
         cmd = f"P{steps}R"
         res_dict = self.send_pump_command(cmd)
         return res_dict
 
-    """
-    Maybe the res_dict should just be an internal object for verification,
-    and all the individual methods just return a bool?
-    """
+    def dispense(self, steps: int) -> dict:
+        if not steps in self.SYRINGE_POSITION_RANGE:
+            raise ValueError(f"Invalid position {steps}.")
 
-    """
-    Same thing with the ValveStates, should the user need to know about them?
-    """
+        valve_state = self.get_valve_state()
+        if not valve_state == ValveStates.OUTPUT:
+            set = self.set_valve_state(state=ValveStates.OUTPUT)
 
-    def dispense(self, steps: int, port: ValvePorts) -> dict:
-        """To where?"""
-        """Need to make sure 'steps' and 'port' are valid"""
+        while not self.check_module_ready():
+            time.sleep(0.25)
+
         cmd = f"D{steps}R"
         res_dict = self.send_pump_command(cmd)
         return res_dict
@@ -148,12 +178,16 @@ class NorgrenPump(PumpInterface):
     def send_pump_command(self, cmd: str) -> dict:
         """
         Builds and sends an encoded serial command and returns the decoded
-        response in an easily accessible way.
+        response.
         """
         serial_cmd = self.build_serial_command(cmd)
         self.serial_port.write(serial_cmd)
-        res_bytes = self.serial_port.readline().split()[0]
-        return self.check_response(res_bytes)
+
+        # Pump protocol uses FF hex as end-of-packet character
+        res_bytes = self.serial_port.read_until(expected=b'\xff')
+        # Pump protocol uses 03 hex as end-of-response character
+        res_bytes_cleaned = res_bytes.split(b'\x03')[0]
+        return self.check_response(res_bytes_cleaned)
 
     def build_serial_command(self, cmd: str) -> bytes:
         """Uses Norgren-spcific string formatting and converts to bytes"""
@@ -162,8 +196,13 @@ class NorgrenPump(PumpInterface):
     def check_response(self, res: bytes) -> dict:
         """ Serial communications helper; schema defined in pump manual """
         res_decoded = res.decode("ascii").rstrip()
+
         host_status = res_decoded[:2]
+        host_ready = True if host_status == '/0' else False
+
         module_status = res_decoded[2]
+        module_ready = True if module_status == '`' else False
+
         msg = res_decoded[3:]
-        return {"host_status": host_status, "module_status": module_status,
+        return {"host_ready": host_ready, "module_ready": module_ready,
                     "msg": msg}
