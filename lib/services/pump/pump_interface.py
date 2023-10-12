@@ -3,17 +3,82 @@ import time
 
 class PumpInterface:
     """
-    This class defines an interface to a PumpModule
-    This class just defines the high-level operations of the pump
-    Specific implementation classes should be used for devices
+    This class defines an interface to a PumpModule.
+    This class just defines the high-level operations of the pump,
+    specific implementation classes should be used for devices.
     """
 
     def __init__(self):
-        """
-        Initialize this object
-        """
-        self.syringe_pos = 0
+        self.syringe_pos = None
+        self.valve_state = None
         self._sleep_func = None
+        
+        # Conversion factor from mL to steps on the syringe
+        self.ML_TO_STEPS_FACTOR = None
+
+    def initialize_pump(self):
+        """
+        Send an initialize command to the pump.
+        """
+        pass
+
+    def get_syringe_position(self):
+        """
+        Get the syringe's current position. Min/Max positions should
+        be pre-defined in an Enum.
+        """
+        pass
+
+    def set_syringe_position(self, pos):
+        """
+        Move the syringe to an absolute position. Min/Max positions should
+        be pre-defined in an Enum.
+        """
+        pass
+
+    def get_valve_state(self):
+        """
+        Get the current state of the pump's valve. Available states should
+        be pre-defined in an Enum.
+        """
+        pass
+
+    def set_valve_state(self, state):
+        """
+        Set the pump's valve to a specified state. Available states should
+        be pre-defined in an Enum.
+        """
+        pass
+
+    def fill_syringe(self):
+        """
+        Fill the syringe.
+        """
+        pass
+
+    def empty_syringe(self):
+        """
+        Empty the syringe.
+        """
+        pass
+
+    def wash_syringe(self):
+        """
+        Wash the unit.
+        """
+        pass
+
+    def aspirate(self, steps, port):
+        """
+        Draw solution into syringe through the input port.
+        """
+        pass
+
+    def dispense(self, steps, port):
+        """
+        Dispense solution from syringe through the output port.
+        """
+        pass
 
     def set_sleep_func(self, sleep_func):
         """
@@ -21,36 +86,6 @@ class PumpInterface:
         Ignore otherwise
         """
         self._sleep_func = sleep_func
-
-    def move_syringe(self, step_count, resolution):
-        """
-        Move the syringe to the given count
-        (Is resolution relevant for non RPi/GPIO impl?)
-        """
-        pass
-
-    def fill(self):
-        """
-        Fill the syringe
-        """
-        pass
-
-    def empty(self):
-        """
-        Empty the syringe
-        """
-        pass
-
-    def wash(self):
-        """
-        Wash the unit
-        """
-        self.fill()
-        self.empty()
-        self.fill()
-        self.empty()
-        self.fill()
-        self.empty()
 
     def sleep_msecs(self, t_msec):
         """

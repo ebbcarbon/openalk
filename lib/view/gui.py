@@ -22,8 +22,8 @@ class App(tk.Tk):
         self.pump = pump_interface.PumpInterface()
         self.pump.set_sleep_func(self.sleep_msecs)
 
-        # self.ph_meter = ph_modules.pH_meter_A211(PH_SERIAL_PORT)
-        self.ph_meter = ph_modules.pH_meter_simulated()
+        self.ph_meter = ph_modules.pH_meter_A211(PH_SERIAL_PORT)
+        # self.ph_meter = ph_modules.pH_meter_simulated()
 
         self.title("Total Alkalinity")
         self.geometry("1200x500")
