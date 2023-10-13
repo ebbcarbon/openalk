@@ -53,6 +53,8 @@ class NorgrenPump(PumpInterface):
         self.SYRINGE_POSITION_RANGE = range(self.SYRINGE_POSITION_MIN,
                                             self.SYRINGE_POSITION_MAX + 1)
 
+        print(f"Connecting to pump on port {self.SERIAL_PORT_LOC}...")
+
         """ Most of these parameters are defined in the pump manual """
         self.serial_port = serial.Serial(
             port = self.SERIAL_PORT_LOC,
@@ -62,7 +64,8 @@ class NorgrenPump(PumpInterface):
             stopbits = serial.STOPBITS_ONE,
             timeout = self.SERIAL_TIMEOUT
         )
-        print(f"Serial port open: {self.serial_port}")
+        if self.serial_port.is_open:
+            print(f"Pump serial port open: {self.serial_port}")
 
     def initialize_pump(self) -> dict:
         cmd = "W4R"

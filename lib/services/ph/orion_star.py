@@ -27,6 +27,8 @@ class OrionStarA215(pHInterface):
         # up the serial return message
         self.SERIAL_TIMEOUT = 4
 
+        print(f"Connecting to pH meter on port {self.SERIAL_PORT_LOC}...")
+
         self.serial_port = serial.Serial(
             port = self.SERIAL_PORT_LOC,
             baudrate = self.BAUD_RATE,
@@ -35,7 +37,8 @@ class OrionStarA215(pHInterface):
             stopbits = serial.STOPBITS_ONE,
             timeout = self.SERIAL_TIMEOUT
         )
-        print(f"Serial port open: {self.serial_port}")
+        if self.serial_port.is_open:
+            print(f"pH meter serial port open: {self.serial_port}")
 
     def get_measurement(self) -> dict:
         cmd = "GETMEAS"
