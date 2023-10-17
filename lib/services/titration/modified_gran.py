@@ -2,7 +2,7 @@ import numpy as np
 from lib.utils import rsq
 
 
-class Titration(object):
+class ModifiedGranTitration:
     def __init__(self, sampleSize, S, T, pHs, emf, volumeAdded):
         self.sampleSize = sampleSize / 1000
         self.S = S

@@ -11,12 +11,40 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # Local libraries
 from lib.services.ph import orion_star
 from lib.services.pump import norgren_pump
-from lib.services.titration import titration_class
+from lib.services.titration import modified_gran
 
 """
-*** Titration Procedure ***
+*** High Level Titration Procedure ***
 
+Open-cell titration procedure for determination of total alkalinity in sea
+water, according to Dickson (2007) SOP 3b:
 
+- Known amount of seawater is placed in an open cell
+- Hydrochloric acid titrant of known acid concentration placed next to cell
+- Sea water sample is acidified to a pH between 3.5-4.0 with a single aliquot
+  of titrant
+- Seawater solution is stirred for a defined period of time to allow escape
+  of evolved CO2
+- Titration is then continued in small steps until reaching pH 3.0
+- Total alkalinity is computed from e.m.f. and the volume of titrant dispensed,
+  using a nonlinear least-squares approach
+
+"""
+
+"""
+*** Titration Steps ***
+
+Again according to Dickson (2007) SOP 3b:
+
+- With slow stirring, dispense enough hydrochloric acid to bring the sample
+  to a pH just above 3.5.
+- Increase the stirring rate until it is vigorous but not splashing. Turn on
+  air flow through the solution.
+- Leave the acidified sample stirring for at least 6 minutes to allow for CO2
+  degassing.
+- Titrate the sample using 0.05 cm^3 increments to a final pH of ca. 3.0
+  (~20 increments). After each addition, record the total dispensed volume to
+  0.001 cm^3, the e.m.f. to 0.00001 V, and the sample temperature to 0.01 C.
 
 """
 
@@ -183,7 +211,7 @@ class App(tk.Tk):
 
         """
         Get initial pH/emf input for titration. Can we not just get temp
-        here as well and obviate the need for temp input by the user?
+        here as well and obviate the need for temp input by the user? *YES*
         """
         meas_initial = self.ph_meter.get_measurement()
         pHi = meas_initial["pH"]
@@ -194,7 +222,7 @@ class App(tk.Tk):
         """
         Initialize main titration object
         """
-        titration = titration_class.Titration(
+        titration = modified_gran.ModifiedGranTitration(
             sampleSize, salinity, temp, np.array([pHi]), np.array([emfi]), np.array([0])
         )
 
@@ -256,6 +284,8 @@ class App(tk.Tk):
         pHf: ?
         Cacid: ?
         syringeStep: calibrated volume/step of the pump
+
+        Additional input box for Titrant acid concentration
         """
         pHf = 3.79
         Cacid = 0.09760158624
