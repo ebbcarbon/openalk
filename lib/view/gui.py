@@ -10,8 +10,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 # Local libraries
 from lib.services.ph import orion_star
-from lib.services.pump import norgren_pump
-from lib.services.titration import modified_gran
+from lib.services.pump import norgren
+from lib.services.titration import gran
 
 """
 *** High Level Titration Procedure ***
@@ -57,7 +57,7 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.pump = norgren_pump.NorgrenPump()
+        self.pump = norgren.VersaPumpV6()
         # self.pump = pump_interface.PumpInterface()
         # self.pump.set_sleep_func(self.sleep_msecs)
 
@@ -109,9 +109,9 @@ class App(tk.Tk):
         self.wm_exit_handler = self.protocol("WM_DELETE_WINDOW", self.quit_program)
 
         self.reset_button = tk.Button(self, text="Reset", padx=20, command=self.reset)
-        self.fill_button = tk.Button(self, text="Fill", padx=20, command=self.pump.fill_syringe)
-        self.empty_button = tk.Button(self, text="Empty", padx=20, command=self.pump.empty_syringe)
-        self.wash_button = tk.Button(self, text="Wash", padx=20, command=self.pump.wash_syringe)
+        self.fill_button = tk.Button(self, text="Fill", padx=20, command=self.pump.fill)
+        self.empty_button = tk.Button(self, text="Empty", padx=20, command=self.pump.empty)
+        self.wash_button = tk.Button(self, text="Wash", padx=20, command=self.pump.wash)
 
         """
         Grid arrangement of input fields, buttons
@@ -222,8 +222,9 @@ class App(tk.Tk):
         """
         Initialize main titration object
         """
-        titration = modified_gran.ModifiedGranTitration(
-            sampleSize, salinity, temp, np.array([pHi]), np.array([emfi]), np.array([0])
+        titration = gran.ModifiedGranTitration(
+            sampleSize, salinity, temp, np.array([pHi]),
+            np.array([emfi]), np.array([0])
         )
 
         """
@@ -245,7 +246,7 @@ class App(tk.Tk):
         """
         Fill syringe with acid to prepare for dosing
         """
-        self.pump.fill_syringe()
+        self.pump.fill()
 
         return
 

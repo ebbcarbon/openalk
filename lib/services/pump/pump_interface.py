@@ -12,7 +12,7 @@ class PumpInterface:
         self.syringe_pos = None
         self.valve_state = None
         self._sleep_func = None
-        
+
         # Conversion factor from mL to steps on the syringe
         self.ML_TO_STEPS_FACTOR = None
 
@@ -50,19 +50,19 @@ class PumpInterface:
         """
         pass
 
-    def fill_syringe(self):
+    def fill(self):
         """
-        Fill the syringe.
-        """
-        pass
-
-    def empty_syringe(self):
-        """
-        Empty the syringe.
+        Fill the syringe to the maximum position.
         """
         pass
 
-    def wash_syringe(self):
+    def empty(self):
+        """
+        Empty the syringe to the minimum position.
+        """
+        pass
+
+    def wash(self):
         """
         Wash the unit.
         """
