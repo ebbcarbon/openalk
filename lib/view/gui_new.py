@@ -27,15 +27,13 @@ class App(tk.Tk):
         super().__init__()
 
         self.pump = norgren.VersaPumpV6()
-        # self.pump = pump_interface.PumpInterface()
-        # self.pump.set_sleep_func(self.sleep_msecs)
 
         self.ph_meter = orion_star.OrionStarA215()
-        # self.ph_meter = ph_modules.pH_meter_A211(PH_SERIAL_PORT)
-        # self.ph_meter = ph_modules.pH_meter_simulated()
 
         self.system_state = None
+
         self._sleep_var = tk.IntVar(self)
+        self._stop_titration = False
 
         """
         Should probably break out all the UI initialization into a separate
@@ -196,10 +194,21 @@ class App(tk.Tk):
         self.empty_button.configure(state=tk.NORMAL)
         self.wash_button.configure(state=tk.NORMAL)
 
+    def clear_outputs(self) -> None:
+        self.total_alk_output.configure(state=tk.NORMAL)
+        self.total_alk_output.delete(0, tk.END)
+        self.total_alk_output.configure(state=tk.DISABLED)
+
+    def update_ta_output(self, value: float) -> None:
+        self.total_alk_output.configure(state=tk.NORMAL)
+        self.total_alk_output.insert(0, str(value))
+        self.total_alk_output.configure(state=tk.DISABLED)
+
     def start_titration(self) -> None:
 
         self.disable_inputs()
         self.disable_manual_pump_controls()
+        self.clear_outputs()
 
         inputs_valid, sample_mass, salinity, acid_conc = self.check_inputs()
 
@@ -243,47 +252,84 @@ class App(tk.Tk):
         """Fix this"""
         self.initial_titration(titration, float(acid_conc))
 
-    def initial_titration(self, titration: gran.ModifiedGranTitration, acid_conc: float) -> None:
+    def initial_titration(self, titration: gran.ModifiedGranTitration,
+                              acid_conc: float) -> None:
+        # Stopping logic. Need to think of a better way to do this.
+        if self._stop_titration:
+            self.after_cancel(self.initial_titration)
+            print("Titration cancelled.")
+            self._stop_titration = False
+            return
 
-        """Placeholder for stopping logic"""
-        # stop_titration = False
-        # if stop_titration:
-        #     print("titration stopping")
-
-        """
-        Check if last pH reading is below 3.8, if so move to auto titration...
-
-        Using after_cancel(self) is real bad, just wholesale cancels
-        every update of the parent
-        """
-        # if titration.pHs[-1] < 3.8:
-        #     print("Moving to Second Step")
-        #     self.after_cancel(self)
-        #     self.auto_titration(titration)
-        #
-        #     return
+        # Check if last pH reading is below 3.8, if so move to next step
+        if titration.pHs[-1] < 3.8:
+            print("Moving to second titration step")
+            self.after_cancel(self.initial_titration)
+            self.auto_titration(titration, acid_conc)
+            return
 
         pHf = 3.79
 
+        self.run_titration_step(titration, acid_conc, pHf)
+
+        # Schedule next titration step, setting time=0 makes it run
+        # immediately whenever the mainloop is not busy
+        self.after(0, self.initial_titration, titration, acid_conc)
+
+    def auto_titration(self, titration: gran.ModifiedGranTitration,
+                          acid_conc: float) -> None:
+        # Stopping logic. Need to think of a better way to do this.
+        if self._stop_titration:
+            self.after_cancel(self.auto_titration)
+            print("Titration cancelled.")
+            self._stop_titration = False
+            return
+
         """
-        Get the volume of acid required to dose at the next step, in liters
+        Stop if last pH less than 3, or if number of steps > 25(??)
         """
+        if titration.pHs[-1] < 3 or len(titration.pHs) > 25:
+            self.after_cancel(self.auto_titration)
+            print(f"Final pH: {titration.pHs[-1]}")
+
+            TA, gamma, rsquare = titration.granCalc(acid_conc)
+            print(f"TA: {TA}, Gamma: {gamma}, Rsq: {rsquare}")
+
+            self.update_ta_output(TA)
+
+            self.write_data(titration, TA)
+            return
+
+        """This stage goes much more slowly, in increments of 0.1 pH"""
+        pHi = titration.pHs[-1]
+        pHf = pHi - 0.1
+
+        self.run_titration_step(titration, acid_conc, pHf)
+
+        # Schedule next titration step, setting time=0 makes it run
+        # immediately whenever the mainloop is not busy
+        self.after(0, self.auto_titration, titration, acid_conc)
+
+    def run_titration_step(self, titration: gran.ModifiedGranTitration,
+                              acid_conc: float, pHf: float) -> None:
+        # Get the volume of acid required to dose at the next step, in liters
         required_acid_volume_liters = titration.requiredVol(acid_conc, pHf)
 
         if not self.pump.check_volume_available(required_acid_volume_liters):
             self.pump.fill()
             self.tksleep(15)
 
-        # Normal operation
         # Dispense required volume of acid
         self.pump.dispense(required_acid_volume_liters)
         # Wait 15 seconds to equilibrate
         self.tksleep(15)
+
         # Take pH, emf measurements
         step_measurement = self.ph_meter.get_measurement()
         pH = step_measurement["pH"]
         emf = step_measurement["mV"]
         print(f"pH: {pH}, emf: {emf}")
+
         # Add last measurements to titration
         titration.pHs = np.append(titration.pHs, float(pH))
         titration.emf = np.append(titration.emf, float(emf))
@@ -296,27 +342,15 @@ class App(tk.Tk):
         # Plot current step
         self.plot(titration.volumeAdded, titration.emf)
 
-        # Schedule next titration step
-        self.after(1000, self.initial_titration, titration)
-        return
-
-    def second_titration(self, titration: gran.ModifiedGranTitration) -> None:
-        """Placeholder for stopping logic"""
-        # stop_titration = False
-        # if stop_titration:
-        #     print("titration stopping")
-
-
-
-
     def plot(self, x: np.array, y: np.array) -> None:
         if len(x) >= 3:
             self.ax.scatter(x[2:], y[2:], color="blue")
             self.ax.autoscale()
             self.canvas.draw()
 
-    def stop_titration(self):
-        pass
+    def stop_titration(self) -> None:
+        self._stop_titration = True
+        print("Stopping titration before next step...")
 
     def reset_interface(self):
         pass
