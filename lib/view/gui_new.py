@@ -92,6 +92,8 @@ class App(tk.Tk):
         self.empty_button = tk.Button(self, text="Empty", padx=20, command=self.pump.empty)
         self.wash_button = tk.Button(self, text="Wash", padx=20, command=self.pump.wash)
 
+        self.export_button = tk.Button(self, text="Export Data", padx=20, command=self.export_data)
+
         """
         Grid arrangement of input fields, buttons
         """
@@ -123,6 +125,7 @@ class App(tk.Tk):
         self.fill_button.grid(row=4, column=2)
         self.empty_button.grid(row=4, column=3)
         self.wash_button.grid(row=4, column=4)
+        self.export_button.grid(row=3, column=5)
 
         self.state_label.grid(row=6, column=0)
 
@@ -246,6 +249,7 @@ class App(tk.Tk):
             np.array([0])
         )
 
+        print("Filling syringe...")
         self.pump.fill()
         self.tksleep(15)
 
@@ -255,6 +259,8 @@ class App(tk.Tk):
     def initial_titration(self, titration: gran.ModifiedGranTitration,
                               acid_conc: float) -> None:
         # Stopping logic. Need to think of a better way to do this.
+        # Need to reset interface after this!!
+        # Where does the syringe empty to in this case?
         if self._stop_titration:
             self.after_cancel(self.initial_titration)
             print("Titration cancelled.")
@@ -298,6 +304,9 @@ class App(tk.Tk):
             self.update_ta_output(TA)
 
             self.write_data(titration, TA)
+
+            """There was originally a call to reset everything here, fix this"""
+            # self.reset()
             return
 
         """This stage goes much more slowly, in increments of 0.1 pH"""
@@ -315,11 +324,15 @@ class App(tk.Tk):
         # Get the volume of acid required to dose at the next step, in liters
         required_acid_volume_liters = titration.requiredVol(acid_conc, pHf)
 
+        required_acid_volume_ul = round(required_acid_volume_liters * 1e6, 2)
+
         if not self.pump.check_volume_available(required_acid_volume_liters):
+            print("Volume low, re-filling...")
             self.pump.fill()
             self.tksleep(15)
 
         # Dispense required volume of acid
+        print(f"Dispensing: {required_acid_volume_ul} uL")
         self.pump.dispense(required_acid_volume_liters)
         # Wait 15 seconds to equilibrate
         self.tksleep(15)
@@ -347,6 +360,45 @@ class App(tk.Tk):
             self.ax.scatter(x[2:], y[2:], color="blue")
             self.ax.autoscale()
             self.canvas.draw()
+
+    """
+    Bad writer logic. Header should be something like:
+    time, titration_step, sample_mass_g, temp_C, salinity, emf_mV,
+    volume_added_L, pH, total_alkalinity_umol_kg
+    """
+    def write_data(self, titration, TA) -> None:
+        filename = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
+
+        with open(filename + ".csv", "w") as f:
+            writer = csv.writer(f, delimiter=",")
+            writer.writerow(["Sample Size (g):"] + [str(titration.sampleSize * 1000)])
+            writer.writerow(["Temperature (C):"] + [str(titration.T - 273.15)])
+            writer.writerow(["Salinity:"] + [str(titration.S)])
+            writer.writerow(["Emf:"] + [",".join(titration.emf.astype(str))])
+            writer.writerow(
+                ["Volume Added:"] + [",".join(titration.volumeAdded.astype(str))]
+            )
+            writer.writerow(["pH:"] + [",".join(titration.pHs.astype(str))])
+            writer.writerow(["Total Alkalinity:"] + [str(TA)])
+
+    def export_data(self) -> None:
+        default_filename = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
+        filepath = tk.filedialog.asksaveasfilename(
+                      initialfile=default_filename,
+                      defaultextension=".csv",
+                      filetypes=[("CSV", "*.csv")]
+        )
+        with open(filepath, "w") as f:
+            writer = csv.writer(f, delimiter=",")
+            writer.writerow(["Sample Size (g):"] + [str(titration.sampleSize * 1000)])
+            writer.writerow(["Temperature (C):"] + [str(titration.T - 273.15)])
+            writer.writerow(["Salinity:"] + [str(titration.S)])
+            writer.writerow(["Emf:"] + [",".join(titration.emf.astype(str))])
+            writer.writerow(
+                ["Volume Added:"] + [",".join(titration.volumeAdded.astype(str))]
+            )
+            writer.writerow(["pH:"] + [",".join(titration.pHs.astype(str))])
+            writer.writerow(["Total Alkalinity:"] + [str(TA)])
 
     def stop_titration(self) -> None:
         self._stop_titration = True
