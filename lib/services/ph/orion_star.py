@@ -1,4 +1,3 @@
-import time
 import serial
 
 from lib.services.ph.ph_interface import pHInterface
@@ -23,9 +22,11 @@ class OrionStarA215(pHInterface):
         self.SERIAL_PORT_LOC = '/dev/ttyACM0'
         self.BAUD_RATE = 9600
 
-        # Be careful about changing this; had to bump to 4 to avoid chopping
-        # up the serial return message
-        self.SERIAL_TIMEOUT = 4
+        """
+        Serial timeout of 10 minutes to wait for stable pH reading. This is
+        pretty hacky.
+        """
+        self.SERIAL_TIMEOUT = 600
 
         print(f"Connecting to pH meter on port {self.SERIAL_PORT_LOC}...")
 

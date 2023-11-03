@@ -51,7 +51,7 @@ class App(tk.Tk):
         """
         Input field definition and titles
         """
-        self.initial_mass_label = tk.Label(self, text="Insert initial Mass (g): ", padx=20)
+        self.initial_mass_label = tk.Label(self, text="Insert sample mass (g): ", padx=20)
         self.initial_mass_input = tk.Entry(self, width=10)
 
         self.temperature_label = tk.Label(self, text="Insert temperature (C): ", padx=20)
@@ -60,7 +60,7 @@ class App(tk.Tk):
         self.salinity_label = tk.Label(self, text="Insert sample salinity (S): ", padx=20)
         self.salinity_input = tk.Entry(self, width=10)
 
-        self.acid_conc_label = tk.Label(self, text="Insert acid concentration (M): ", padx=20)
+        self.acid_conc_label = tk.Label(self, text="Insert titrant acid concentration (M): ", padx=20)
         self.acid_conc_input = tk.Entry(self, width=10)
 
         self.total_alk_label = tk.Label(self, text="Total Alkalinity (umol/kg): ", padx=20)
@@ -259,7 +259,7 @@ class App(tk.Tk):
     def initial_titration(self, titration: gran.ModifiedGranTitration,
                               acid_conc: float) -> None:
         # Stopping logic. Need to think of a better way to do this.
-        # Need to reset interface after this!!
+        # Need to reset interface after this is triggered
         # Where does the syringe empty to in this case?
         if self._stop_titration:
             self.after_cancel(self.initial_titration)
@@ -292,7 +292,7 @@ class App(tk.Tk):
             return
 
         """
-        Stop if last pH less than 3, or if number of steps > 25(??)
+        Stop if last pH less than 3, or if number of steps > 25(???)
         """
         if titration.pHs[-1] < 3 or len(titration.pHs) > 25:
             self.after_cancel(self.auto_titration)
@@ -334,9 +334,10 @@ class App(tk.Tk):
         # Dispense required volume of acid
         print(f"Dispensing: {required_acid_volume_ul} uL")
         self.pump.dispense(required_acid_volume_liters)
-        # Wait 15 seconds to equilibrate
-        self.tksleep(15)
+        # Wait 5 seconds to dispense acid
+        self.tksleep(5)
 
+        """Currently this logic is blocking, similar to using tksleep"""
         # Take pH, emf measurements
         step_measurement = self.ph_meter.get_measurement()
         pH = step_measurement["pH"]
@@ -381,6 +382,11 @@ class App(tk.Tk):
             writer.writerow(["pH:"] + [",".join(titration.pHs.astype(str))])
             writer.writerow(["Total Alkalinity:"] + [str(TA)])
 
+    """
+    Placeholder for new writer logic behind an export button. If this is
+    dependent on attributes of the last titration instance, it will break
+    when you start a new one.
+    """
     def export_data(self) -> None:
         default_filename = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
         filepath = tk.filedialog.asksaveasfilename(
