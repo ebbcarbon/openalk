@@ -52,14 +52,18 @@ class VersaPumpV6(PumpInterface):
         self.WASH_CYCLES = 3
 
         # Syringe size in liters, ours is currently 2.5mL
-        self.SYRINGE_SIZE_L = 0.0025
+        self.SYRINGE_SIZE_L_IDEAL = 0.0025
+
+        # Correction for approx. 1% error seen across the range
+        self.SYRINGE_SIZE_L_CALIB = 0.002478
 
         self.SYRINGE_POSITION_MIN = 0
         self.SYRINGE_POSITION_MAX = 48000
         self.SYRINGE_POSITION_RANGE = range(self.SYRINGE_POSITION_MIN,
                                             self.SYRINGE_POSITION_MAX + 1)
 
-        self.LITERS_PER_STEP = self.SYRINGE_SIZE_L / self.SYRINGE_POSITION_MAX
+        self.LITERS_PER_STEP = (self.SYRINGE_SIZE_L_CALIB /
+                                    self.SYRINGE_POSITION_MAX)
 
         print(f"Connecting to pump on port {self.SERIAL_PORT_LOC}...")
 

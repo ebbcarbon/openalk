@@ -66,6 +66,8 @@ class OrionStarA215(pHInterface):
         """ Serial communications helper; schema defined in pH meter manual """
         res_decoded = res.decode("ascii").rstrip().splitlines()[3]
 
+        """Add some error handling here to display any unexpected response"""
+
         # Split the response and take just the channel values
         channel_values_raw = res_decoded.split('---')[1]
         # Split the channel values and take pH, mV, and temp
