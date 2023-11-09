@@ -366,6 +366,8 @@ class App(tk.Tk):
     Bad writer logic. Header should be something like:
     time, titration_step, sample_mass_g, temp_C, salinity, emf_mV,
     volume_added_L, pH, total_alkalinity_umol_kg
+
+    NOTE: add acid titrant concentration to data
     """
     def write_data(self, titration, TA) -> None:
         filename = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")

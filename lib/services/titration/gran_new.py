@@ -7,57 +7,88 @@ from lib.utils import rsq
 class ModifiedGranTitrationNew:
     def __init__(self, sample_mass: float, salinity: float, acid_conc: float,
                   temp: float, ph_initial: float, emf_initial: float) -> None:
-        self.sample_mass = sample_mass / 1000 # why /1000?
+        self.sample_mass_kg = sample_mass / 1000
         self.salinity = salinity
-        self.acid_conc = acid_conc
+        self.acid_conc_M = acid_conc
         self.temp_C = temp
         self.temp_K = self.temp_C + 273.15
         self.ph_array = np.array([ph_initial])
         self.emf_array = np.array([emf_initial])
         self.volume_array = np.array([0])
 
-    def calc_ionic_strength(self) -> float:
-        I = 19.924 * self.salinity / (1000 - 1.005 * self.salinity)
+    def calc_K1(self) -> float:
+        """Calculates the carbonic acid dissociation constant (K1) for the
+        reaction H2CO3 --> H + HCO3.
 
-    def calc_pK1c(self) -> float:
-        pK1c = (
-            3670.7 / self.T
+        pK1 = -log_10(K1), K1 = 10^(-pK1), etc.
+
+        (Mehrbach 1973 refitted by Dickson and Millero 1987)
+        """
+        pK1 = (
+            (3670.7 / self.temp_K)
             - 62.008
-            + 9.7944 * np.log(self.T)
-            - 0.0118 * self.S
-            + 0.000116 * (self.S**2)
-        )  # H2CO3  --> H + HCO3 (Mehrbach 1973 refitted by Dickson and Millero 1987)
-
-    def calc_pK2c(self) -> float:
-        pK2c = (
-            1394.7 / self.T + 4.777 - 0.0184 * self.S + 0.000118 * (self.S**2)
-        )  # HCO3   --> H + CO3  (Mehrbach 1973 refitted by Dickson and Millero 1987F)
-
-    def calc_lnKw(self) -> float:
-        lnKw = (
-            148.96502
-            - 13847.26 / self.T
-            - 23.6521 * np.log(self.T)
-            + (118.67 / self.T - 5.977 + 1.0495 * np.log(self.T)) * (self.S**0.5)
-            - 0.01615 * self.S
-        )  # (DOE 1994)
-
-    def calc_lnKB(self) -> float:
-        lnKB = (
-            (
-                -8966.90
-                - 2890.53 * (self.S**0.5)
-                - 77.942 * self.S
-                + 1.728 * (self.S**1.5)
-                - 0.0996 * (self.S**2)
-            )
-            / self.T
-            + 148.0248
-            + 137.1942 * (self.S**0.5)
-            + 1.62142 * self.S
-            - (24.4344 + 25.085 * (self.S**0.5) + 0.2474 * self.S) * np.log(self.T)
-            + 0.053105 * (self.S**0.5) * self.T
+            + (9.7944 * np.log(self.temp_K))
+            - (0.0118 * self.salinity)
+            + (0.000116 * (self.salinity**2))
         )
+        return np.power(10, -1 * pK1)
+
+    def calc_K2(self) -> float:
+        """Calculates the bicarbonate dissociation constant (K2) for the
+        reaction HCO3 --> H + CO3.
+
+        pK2 = -log_10(K2), K2 = 10^(-pK2), etc.
+
+        (Mehrbach 1973 refitted by Dickson and Millero 1987)
+        """
+        pK2 = (
+            (1394.7 / self.temp_K)
+            + 4.777
+            - (0.0184 * self.salinity)
+            + 0.000118 * (self.salinity**2)
+        )
+        return np.power(10, -1 * pK2)
+
+    def calc_KW(self) -> float:
+        """Calculates the water dissociation constant (KW) for the
+        reaction H2O --> H + OH.
+
+        lnKW = ln(KW), KW = exp(ln(KW)), etc.
+
+        (DOE 1994)
+        """
+        lnKW = (
+            - (13847.26 / self.temp_K)
+            + 148.9652
+            - (23.6521 * np.log(self.temp_K))
+            + (((118.67 / self.temp_K) - 5.977 + (1.0495 * np.log(self.temp_K))) * (self.salinity**0.5))
+            - (0.01615 * self.salinity)
+        )
+        return np.exp(lnKW)
+
+    def calc_KB(self) -> float:
+        """Calculates the boric acid dissociation constant (KB) for the
+        reaction B(OH)3 --> B(OH)4 + H.
+
+        lnKB = ln(KB), KB = exp(ln(KB)), etc.
+
+        (Dickson 1990b)
+        """
+        lnKB = (
+            ((
+                - 8966.90
+                - (2890.53 * (self.salinity**0.5))
+                - (77.942 * self.salinity)
+                + (1.728 * (self.salinity**1.5))
+                - (0.0996 * (self.salinity**2))
+            ) / self.temp_K)
+            + 148.0248
+            + (137.1942 * (self.salinity**0.5))
+            + (1.62142 * self.salinity)
+            - (24.4344 + (25.085 * (self.salinity**0.5)) + (0.2474 * self.salinity)) * np.log(self.temp_K)
+            + (0.053105 * (self.salinity**0.5) * self.temp_K)
+        )
+        return np.exp(lnKB)
 
     def get_required_acid_vol(self, target_ph: float) -> float:
         K1c = np.power(10, -1 * pK1c)

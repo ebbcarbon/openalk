@@ -4,13 +4,18 @@ from lib.utils import rsq
 
 class ModifiedGranTitration:
     def __init__(self, sampleSize, S, T, pHs, emf, volumeAdded):
-        self.sampleSize = sampleSize / 1000
+        self.sampleSize = sampleSize / 1000  # mass in kg
         self.S = S
-        self.T = T + 273.15
+        self.T = T + 273.15  # temp in kelvin
         self.pHs = pHs
         self.emf = emf
-        self.volumeAdded = volumeAdded
+        self.volumeAdded = volumeAdded  # volumes in liters
 
+    """
+    NOTE: seemingly different calculations being used in the matlab code for
+    the initial and final titrations?
+
+    """
     def requiredVol(self, Cacid, pHf):
         I = 19.924 * self.S / (1000 - 1.005 * self.S)  # ionic strength
         pK1c = (
@@ -19,10 +24,10 @@ class ModifiedGranTitration:
             + 9.7944 * np.log(self.T)
             - 0.0118 * self.S
             + 0.000116 * (self.S**2)
-        )  # H2CO3  --> H + HCO3 (Mehrbach 1973 refitted by Dickson and Millero 1987)
+        )  # H2CO3 --> H + HCO3 (Mehrbach 1973 refitted by Dickson and Millero 1987)
         pK2c = (
             1394.7 / self.T + 4.777 - 0.0184 * self.S + 0.000118 * (self.S**2)
-        )  # HCO3   --> H + CO3  (Mehrbach 1973 refitted by Dickson and Millero 1987F)
+        )  # HCO3 --> H + CO3  (Mehrbach 1973 refitted by Dickson and Millero 1987F)
         lnKw = (
             148.96502
             - 13847.26 / self.T
@@ -44,7 +49,7 @@ class ModifiedGranTitration:
             + 1.62142 * self.S
             - (24.4344 + 25.085 * (self.S**0.5) + 0.2474 * self.S) * np.log(self.T)
             + 0.053105 * (self.S**0.5) * self.T
-        )
+        )  # B(OH)3 --> B(OH)4 + H+ (Dickson 1990)
 
         K1c = np.power(10, -1 * pK1c)
         K2c = np.power(10, -1 * pK2c)
@@ -91,16 +96,26 @@ class ModifiedGranTitration:
 
     def granCalc(self, Cacid):
         volumes = self.volumeAdded[self.pHs < 3.8]  # need to be numpy arrays
+        print(f"Volume array: {volumes}")
         pHs = self.pHs[self.pHs < 3.8]
+        print(f"pH array: {pHs}")
         pH_modified = np.power(10, np.multiply(-1, pHs))
-
+        print(f"pH modified: {pH_modified}")
+        samplemass_plus_volumes = np.add(self.sampleSize, volumes)
+        print(f"mass plus volumes: {samplemass_plus_volumes}")
         ygran = np.multiply(np.add(self.sampleSize, volumes), pH_modified)
-
+        print(f"ygran: {ygran}")
         slope, intercept, xModel, yModel, rsquare = rsq.RSQ(volumes, ygran)
+        print(f"Slope: {slope}, int: {intercept}, xModel: {xModel}, yModel: {yModel}, rsq: {rsquare}")
+
         gamma = slope / Cacid
+        print(f"Gamma: {gamma}")
         Veq = -1 * intercept / slope
+        print(f"Veq: {Veq}")
         molIn = Veq * Cacid
+        print(f"molIn: {molIn}")
 
         TA = molIn / self.sampleSize * 1000000
+        print(f"TA: {TA}")
 
         return TA, gamma, rsquare

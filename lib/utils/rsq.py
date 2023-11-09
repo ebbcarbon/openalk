@@ -15,10 +15,13 @@ def RSQ(x, y):
     workMatrix[:, [0]] = x
     workMatrix[:, [1]] = y
 
+    print(f"Original work matrix: {workMatrix}")
     # remove NaNs and infs
 
     workMatrix = workMatrix[np.all(~np.isnan(workMatrix), axis=1), :]
     workMatrix = workMatrix[np.all(~np.isinf(workMatrix), axis=1), :]
+
+    print(f"Cleaned work matrix: {workMatrix}")
 
     # Calculate slope, intercept, modelx, and modely
 
