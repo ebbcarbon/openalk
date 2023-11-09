@@ -1,4 +1,3 @@
-import time
 import serial
 
 from lib.services.ph.ph_interface import pHInterface
@@ -23,9 +22,13 @@ class OrionStarA215(pHInterface):
         self.SERIAL_PORT_LOC = '/dev/ttyACM0'
         self.BAUD_RATE = 9600
 
-        # Be careful about changing this; had to bump to 4 to avoid chopping
-        # up the serial return message
-        self.SERIAL_TIMEOUT = 4
+        """
+        Serial timeout of 10 minutes to wait for stable pH reading. This is
+        pretty hacky.
+        """
+        self.SERIAL_TIMEOUT = 600
+
+        print(f"Connecting to pH meter on port {self.SERIAL_PORT_LOC}...")
 
         self.serial_port = serial.Serial(
             port = self.SERIAL_PORT_LOC,
@@ -35,7 +38,8 @@ class OrionStarA215(pHInterface):
             stopbits = serial.STOPBITS_ONE,
             timeout = self.SERIAL_TIMEOUT
         )
-        print(f"Serial port open: {self.serial_port}")
+        if self.serial_port.is_open:
+            print(f"pH meter serial port open: {self.serial_port}")
 
     def get_measurement(self) -> dict:
         cmd = "GETMEAS"
@@ -61,6 +65,8 @@ class OrionStarA215(pHInterface):
     def check_response(self, res: bytes) -> dict:
         """ Serial communications helper; schema defined in pH meter manual """
         res_decoded = res.decode("ascii").rstrip().splitlines()[3]
+
+        """Add some error handling here to display any unexpected response"""
 
         # Split the response and take just the channel values
         channel_values_raw = res_decoded.split('---')[1]

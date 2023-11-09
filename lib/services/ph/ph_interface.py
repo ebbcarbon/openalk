@@ -1,8 +1,8 @@
+
 class pHInterface:
     """
-    This class defines an interface to a pH probe interface
+    This class defines an interface to a pH probe.
     """
-
     def __init__(self):
         """
         Initialize this object
@@ -15,6 +15,6 @@ class pHInterface:
         """
         return self._device_functional
 
-    def read_emf_pH(self):
+    def get_measurement(self):
         """ """
         raise NotImplementedError("Use derived pH implementation class!")

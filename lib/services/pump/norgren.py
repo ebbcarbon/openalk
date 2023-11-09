@@ -37,7 +37,11 @@ class ValveStates(Enum):
     OUTPUT = 3
 
 
-class NorgrenPump(PumpInterface):
+class VersaPumpV6(PumpInterface):
+    '''
+    Interface for the Norgren Kloehn Versa Pump 6, 55 series.
+    Our device shows P/N 55022, and is the 48k step version.
+    '''
     def __init__(self) -> None:
         super().__init__()
 
@@ -45,13 +49,23 @@ class NorgrenPump(PumpInterface):
         self.BAUD_RATE = 9600
         self.SERIAL_TIMEOUT = 2
 
-        self.ML_TO_STEPS_FACTOR = None
         self.WASH_CYCLES = 3
+
+        # Syringe size in liters, ours is currently 2.5mL
+        self.SYRINGE_SIZE_L_IDEAL = 0.0025
+
+        # Correction for approx. 1% error seen across the range
+        self.SYRINGE_SIZE_L_CALIB = 0.002478
 
         self.SYRINGE_POSITION_MIN = 0
         self.SYRINGE_POSITION_MAX = 48000
         self.SYRINGE_POSITION_RANGE = range(self.SYRINGE_POSITION_MIN,
                                             self.SYRINGE_POSITION_MAX + 1)
+
+        self.LITERS_PER_STEP = (self.SYRINGE_SIZE_L_CALIB /
+                                    self.SYRINGE_POSITION_MAX)
+
+        print(f"Connecting to pump on port {self.SERIAL_PORT_LOC}...")
 
         """ Most of these parameters are defined in the pump manual """
         self.serial_port = serial.Serial(
@@ -62,21 +76,27 @@ class NorgrenPump(PumpInterface):
             stopbits = serial.STOPBITS_ONE,
             timeout = self.SERIAL_TIMEOUT
         )
-        print(f"Serial port open: {self.serial_port}")
+        if self.serial_port.is_open:
+            print(f"Pump serial port open: {self.serial_port}")
 
     def initialize_pump(self) -> dict:
         cmd = "W4R"
-        res_dict = self.send_pump_command(cmd)
+        res_dict = self._send_pump_command(cmd)
         return res_dict
 
     def check_module_ready(self) -> bool:
         cmd = ""
-        res_dict = self.send_pump_command(cmd)
+        res_dict = self._send_pump_command(cmd)
         return res_dict["module_ready"]
+
+    def check_volume_available(self, volume: float) -> bool:
+        steps_requested = self.liters_to_steps(volume)
+        current_position = self.get_syringe_position()
+        return current_position > steps_requested
 
     def get_syringe_position(self) -> int:
         cmd = "?"
-        res_dict = self.send_pump_command(cmd)
+        res_dict = self._send_pump_command(cmd)
         syringe_position = int(res_dict["msg"])
         return syringe_position
 
@@ -85,12 +105,12 @@ class NorgrenPump(PumpInterface):
             raise ValueError(f"Invalid position {pos}.")
 
         cmd = f"A{pos}R"
-        res_dict = self.send_pump_command(cmd)
+        res_dict = self._send_pump_command(cmd)
         return res_dict
 
     def get_valve_state(self) -> ValveStates:
         cmd = "?8"
-        res_dict = self.send_pump_command(cmd)
+        res_dict = self._send_pump_command(cmd)
         valve_state_raw = int(res_dict['msg'])
         return ValveStates(valve_state_raw)
 
@@ -104,10 +124,10 @@ class NorgrenPump(PumpInterface):
             cmd = "BR"
         if state == ValveStates.OUTPUT:
             cmd = "OR"
-        res_dict = self.send_pump_command(cmd)
+        res_dict = self._send_pump_command(cmd)
         return res_dict
 
-    def fill_syringe(self) -> dict:
+    def fill(self) -> dict:
         valve_state = self.get_valve_state()
         if not valve_state == ValveStates.INPUT:
             set = self.set_valve_state(state=ValveStates.INPUT)
@@ -116,10 +136,10 @@ class NorgrenPump(PumpInterface):
             time.sleep(0.25)
 
         cmd = f"A{self.SYRINGE_POSITION_MAX}R"
-        res_dict = self.send_pump_command(cmd)
+        res_dict = self._send_pump_command(cmd)
         return res_dict
 
-    def empty_syringe(self) -> dict:
+    def empty(self) -> dict:
         valve_state = self.get_valve_state()
         if not valve_state == ValveStates.OUTPUT:
             set = self.set_valve_state(state=ValveStates.OUTPUT)
@@ -128,24 +148,29 @@ class NorgrenPump(PumpInterface):
             time.sleep(0.25)
 
         cmd = f"A{self.SYRINGE_POSITION_MIN}R"
-        res_dict = self.send_pump_command(cmd)
+        res_dict = self._send_pump_command(cmd)
         return res_dict
 
-    def wash_syringe(self) -> dict:
+    def wash(self) -> dict:
         last_res = None
         for _ in range(self.WASH_CYCLES):
-            fill_res_dict = self.fill_syringe()
+            fill_res_dict = self.fill()
             last_res = fill_res_dict
             while not self.check_module_ready():
                 time.sleep(0.25)
 
-            empty_res_dict = self.empty_syringe()
+            empty_res_dict = self.empty()
             last_res = empty_res_dict
             while not self.check_module_ready():
                 time.sleep(0.25)
         return last_res
 
-    def aspirate(self, steps: int) -> dict:
+    def liters_to_steps(self, volume: float) -> int:
+        return int(volume / self.LITERS_PER_STEP)
+
+    def aspirate(self, volume: float) -> dict:
+        steps = self.liters_to_steps(volume)
+
         if not steps in self.SYRINGE_POSITION_RANGE:
             raise ValueError(f"Invalid position {steps}.")
 
@@ -157,10 +182,12 @@ class NorgrenPump(PumpInterface):
             time.sleep(0.25)
 
         cmd = f"P{steps}R"
-        res_dict = self.send_pump_command(cmd)
+        res_dict = self._send_pump_command(cmd)
         return res_dict
 
-    def dispense(self, steps: int) -> dict:
+    def dispense(self, volume: float) -> dict:
+        steps = self.liters_to_steps(volume)
+
         if not steps in self.SYRINGE_POSITION_RANGE:
             raise ValueError(f"Invalid position {steps}.")
 
@@ -172,28 +199,28 @@ class NorgrenPump(PumpInterface):
             time.sleep(0.25)
 
         cmd = f"D{steps}R"
-        res_dict = self.send_pump_command(cmd)
+        res_dict = self._send_pump_command(cmd)
         return res_dict
 
-    def send_pump_command(self, cmd: str) -> dict:
+    def _send_pump_command(self, cmd: str) -> dict:
         """
         Builds and sends an encoded serial command and returns the decoded
         response.
         """
-        serial_cmd = self.build_serial_command(cmd)
+        serial_cmd = self._build_serial_command(cmd)
         self.serial_port.write(serial_cmd)
 
         # Pump protocol uses FF hex as end-of-packet character
         res_bytes = self.serial_port.read_until(expected=b'\xff')
         # Pump protocol uses 03 hex as end-of-response character
         res_bytes_cleaned = res_bytes.split(b'\x03')[0]
-        return self.check_response(res_bytes_cleaned)
+        return self._check_response(res_bytes_cleaned)
 
-    def build_serial_command(self, cmd: str) -> bytes:
+    def _build_serial_command(self, cmd: str) -> bytes:
         """Uses Norgren-specific string formatting and converts to bytes"""
         return f"/1{cmd}\r".encode("ascii")
 
-    def check_response(self, res: bytes) -> dict:
+    def _check_response(self, res: bytes) -> dict:
         """ Serial communications helper; schema defined in pump manual """
         res_decoded = res.decode("ascii").rstrip()
 
