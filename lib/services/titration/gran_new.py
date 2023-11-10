@@ -16,6 +16,7 @@ class ModifiedGranTitrationNew:
         self.emf_array = np.array([emf_initial])
         self.volume_array = np.array([0])
 
+        self.IS = self.calc_IS()
         self.K1 = self.calc_K1()
         self.K2 = self.calc_K2()
         self.KW = self.calc_KW()
@@ -23,6 +24,11 @@ class ModifiedGranTitrationNew:
 
         self.BT = self.calc_BT()
         self.DIC = self.calc_DIC()
+
+    def calc_IS(self) -> float:
+        """Calculates ionic strength (IS) of the sample.
+        """
+        return (19.924 * self.salinity) / (1000 - (1.005 * self.salinity))
 
     def calc_K1(self) -> float:
         """Calculates the carbonic acid equilibrium constant (K1) for the
