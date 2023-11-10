@@ -16,9 +16,18 @@ class ModifiedGranTitrationNew:
         self.emf_array = np.array([emf_initial])
         self.volume_array = np.array([0])
 
+        self.K1 = self.calc_K1()
+        self.K2 = self.calc_K2()
+        self.KW = self.calc_KW()
+        self.KB = self.calc_KB()
+
+        self.BT = self.calc_BT()
+        self.DIC = self.calc_DIC()
+
     def calc_K1(self) -> float:
-        """Calculates the carbonic acid dissociation constant (K1) for the
-        reaction H2CO3 --> H + HCO3.
+        """Calculates the carbonic acid equilibrium constant (K1) for the
+        reaction:
+                          H2CO3 --> H + HCO3.
 
         pK1 = -log_10(K1), K1 = 10^(-pK1), etc.
 
@@ -34,8 +43,9 @@ class ModifiedGranTitrationNew:
         return np.power(10, -1 * pK1)
 
     def calc_K2(self) -> float:
-        """Calculates the bicarbonate dissociation constant (K2) for the
-        reaction HCO3 --> H + CO3.
+        """Calculates the bicarbonate equilibrium constant (K2) for the
+        reaction:
+                          HCO3 --> H + CO3.
 
         pK2 = -log_10(K2), K2 = 10^(-pK2), etc.
 
@@ -50,8 +60,9 @@ class ModifiedGranTitrationNew:
         return np.power(10, -1 * pK2)
 
     def calc_KW(self) -> float:
-        """Calculates the water dissociation constant (KW) for the
-        reaction H2O --> H + OH.
+        """Calculates the water equilibrium constant (KW) for the
+        reaction:
+                          H2O --> H + OH.
 
         lnKW = ln(KW), KW = exp(ln(KW)), etc.
 
@@ -61,14 +72,20 @@ class ModifiedGranTitrationNew:
             - (13847.26 / self.temp_K)
             + 148.9652
             - (23.6521 * np.log(self.temp_K))
-            + (((118.67 / self.temp_K) - 5.977 + (1.0495 * np.log(self.temp_K))) * (self.salinity**0.5))
+            + (
+                ((118.67 / self.temp_K)
+                - 5.977
+                + (1.0495 * np.log(self.temp_K)))
+                * (self.salinity**0.5)
+              )
             - (0.01615 * self.salinity)
         )
         return np.exp(lnKW)
 
     def calc_KB(self) -> float:
-        """Calculates the boric acid dissociation constant (KB) for the
-        reaction B(OH)3 --> B(OH)4 + H.
+        """Calculates the boric acid equilibrium constant (KB) for the
+        reaction:
+                        B(OH)3 --> B(OH)4 + H.
 
         lnKB = ln(KB), KB = exp(ln(KB)), etc.
 
@@ -81,61 +98,113 @@ class ModifiedGranTitrationNew:
                 - (77.942 * self.salinity)
                 + (1.728 * (self.salinity**1.5))
                 - (0.0996 * (self.salinity**2))
-            ) / self.temp_K)
+                ) / self.temp_K
+            )
             + 148.0248
             + (137.1942 * (self.salinity**0.5))
             + (1.62142 * self.salinity)
-            - (24.4344 + (25.085 * (self.salinity**0.5)) + (0.2474 * self.salinity)) * np.log(self.temp_K)
+            - ((
+                24.4344
+                + (25.085 * (self.salinity**0.5))
+                + (0.2474 * self.salinity)
+                ) * np.log(self.temp_K)
+            )
             + (0.053105 * (self.salinity**0.5) * self.temp_K)
         )
         return np.exp(lnKB)
 
+    def calc_BT(self) -> float:
+        """Estimate of total borate based on salinity.
+        """
+        return (0.000416 * self.salinity) / 35
+
+    def calc_DIC(self) -> float:
+        """Estimate of dissolved inorganic carbon based on salinity.
+        """
+        return (0.002050 * self.salinity) / 35
+
+    def calc_H_concentration(self, ph: float) -> float:
+        """Calculates the hydrogen ion concentration at a particular pH.
+        """
+        return np.power(10, -1 * ph)
+
+    def calc_concentration_denominator(self, ph: float) -> float:
+        """Calculates the common denominator term in the expressions
+        for the concentrations of bicarbonate and carbonate:
+
+                      [H+]^2 + K1*[H+] + K1*K2.
+        """
+        H_conc = self.calc_H_concentration(ph)
+        return (H_conc**2) + (self.K1 * H_conc) + (self.K1 * self.K2)
+
+    def calc_carbonate_alkalinity(self, ph: float) -> float:
+        """Calculates the carbonate alkalinity:
+
+                        Ac = [HCO3] + 2[CO3],
+
+        at a given pH using the estimated level of DIC.
+        """
+        H_conc = self.calc_H_concentration(ph)
+        conc_denom = self.calc_concentration_denominator(ph)
+
+        alpha_C1 = (self.K1 * H_conc) / conc_denom
+        # I'm fairly certain it was a typo, but in the original code
+        # the alphaC2 parameter was np.square(K1, K2)
+        alpha_C2 = (self.K1 * self.K2) / conc_denom
+
+        return self.DIC * (alpha_C1 + (2 * alpha_C2))
+
+    def calc_borate_alkalinity(self, ph: float) -> float:
+        """Calculates the borate alkalinity:
+
+                          Ab = [B(OH)4],
+
+        at a given pH using the estimated level of total borate.
+        """
+        H_conc = self.calc_H_concentration(ph)
+        return self.BT * (self.KB / (self.KB + H_conc))
+
+    def get_last_ph(self) -> float:
+        """Returns the pH reading from the most recent titration step.
+        """
+        return self.ph_array[-1]
+
     def get_required_acid_vol(self, target_ph: float) -> float:
-        K1c = np.power(10, -1 * pK1c)
-        K2c = np.power(10, -1 * pK2c)
-        Kw = np.exp(lnKw)
-        TB = 0.000416 * self.S / 35
-        DIC = 0.002050 * self.S / 35
-        KB = np.exp(lnKB)
+        """Calculates the volume of HCl required to lower the pH from
+        the most recent pH reading to the target pH.
+        """
+        initial_ph = self.get_last_ph()
 
-        # Calculate initial acid volume
+        H_conc_initial = self.calc_H_concentration(initial_ph)
+        H_conc_final = self.calc_H_concentration(target_ph)
 
-        denumCinit = (
-            np.square(np.power(10, -1 * self.pHs[-1]))
-            + K1c * np.power(10, -1 * self.pHs[-1])
-            + K1c * K2c
-        )
-        denumCf = (
-            np.square(np.power(10, -1 * pHf)) + K1c * np.power(10, -1 * pHf) + K1c * K2c
-        )
-        alphaC1init = K1c * np.power(10, -1 * self.pHs[-1]) / denumCinit
-        alphaC2init = np.square(K1c * K2c) / denumCinit
-        C_alk_i = DIC * (2 * alphaC2init + alphaC1init)
-        alphaC1f = K1c * np.power(10, -1 * pHf) / denumCf
-        alphaC2f = np.square(K1c * K2c) / denumCf
-        C_alk_f = DIC * (2 * alphaC2f + alphaC1f)
-        BAi = TB * (KB / (KB + np.power(10, -1 * self.pHs[-1])))
-        BAf = TB * (KB / (KB + np.power(10, -1 * pHf)))
-        acidVol = (
-            self.sampleSize
-            / Cacid
+        carbonate_alk_initial = self.calc_carbonate_alkalinity(initial_ph)
+        carbonate_alk_final = self.calc_carbonate_alkalinity(target_ph)
+
+        borate_alk_initial = self.calc_borate_alkalinity(initial_ph)
+        borate_alk_final = self.calc_borate_alkalinity(target_ph)
+
+        H_conc_diff = H_conc_final - H_conc_initial
+        carbonate_alk_diff = carbonate_alk_final - carbonate_alk_initial
+        borate_alk_diff = borate_alk_final - borate_alk_initial
+
+        # Need a better explanation of this
+        required_vol = (
+            self.sample_mass_kg
+            / self.acid_conc_M
             * (
-                np.power(10, -1 * pHf)
-                - np.power(10, -1 * self.pHs[-1])
-                - (C_alk_f - C_alk_i)
-                - (BAf - BAi)
-                - Kw
-                * (
-                    np.reciprocal(np.power(10, -1 * pHf))
-                    - np.reciprocal(np.power(10, -1 * self.pHs[-1]))
-                )
+                H_conc_diff
+                - carbonate_alk_diff
+                - borate_alk_diff
+                - self.KW
+                * ((1 / H_conc_final) - (1 / H_conc_initial))
             )
         )
+        return required_vol
 
-        return acidVol
-
-    """Give this another name that's clearer about what it does"""
     def gran_calc(self) -> Tuple[float, float, float]:
+        """Give this a more explanatory name
+        """
         volumes = self.volumeAdded[self.pHs < 3.8]  # need to be numpy arrays
         pHs = self.pHs[self.pHs < 3.8]
         pH_modified = np.power(10, np.multiply(-1, pHs))

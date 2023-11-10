@@ -267,6 +267,12 @@ class App(tk.Tk):
             self._stop_titration = False
             return
 
+        """
+        Dickson 2007 says to dispense enough HCl to bring pH to just above
+        3.5, wait 6 minutes for CO2 degassing, then titrate using 50ul
+        increments to a pH of approximately 3, such that the total number
+        of titration steps from 3.5 to 3 is about 20.
+        """
         # Check if last pH reading is below 3.8, if so move to next step
         if titration.pHs[-1] < 3.8:
             print("Moving to second titration step")
