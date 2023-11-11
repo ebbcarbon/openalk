@@ -25,12 +25,25 @@ class ModifiedGranTitrationNew:
         self.BT = self.calc_BT()
         self.DIC = self.calc_DIC()
 
+    def get_last_ph(self) -> np.float64:
+        """Returns the pH reading from the most recent titration step.
+        """
+        return self.ph_array[-1]
+
+    def add_step_data(self, ph: float, emf: float, volume: float) -> None:
+        """Adds the pH/emf readings and volume of titrant added at
+        each step to the proper arrays.
+        """
+        self.ph_array = np.append(self.ph_array, ph)
+        self.emf_array = np.append(self.emf_array, emf)
+        self.volume_array = np.append(self.volume_array, volume)
+
     def calc_IS(self) -> float:
         """Calculates ionic strength (IS) of the sample.
         """
         return (19.924 * self.salinity) / (1000 - (1.005 * self.salinity))
 
-    def calc_K1(self) -> float:
+    def calc_K1(self) -> np.float64:
         """Calculates the carbonic acid equilibrium constant (K1) for the
         reaction:
                           H2CO3 --> H + HCO3.
@@ -48,7 +61,7 @@ class ModifiedGranTitrationNew:
         )
         return np.power(10, -1 * pK1)
 
-    def calc_K2(self) -> float:
+    def calc_K2(self) -> np.float64:
         """Calculates the bicarbonate equilibrium constant (K2) for the
         reaction:
                           HCO3 --> H + CO3.
@@ -65,7 +78,7 @@ class ModifiedGranTitrationNew:
         )
         return np.power(10, -1 * pK2)
 
-    def calc_KW(self) -> float:
+    def calc_KW(self) -> np.float64:
         """Calculates the water equilibrium constant (KW) for the
         reaction:
                           H2O --> H + OH.
@@ -88,7 +101,7 @@ class ModifiedGranTitrationNew:
         )
         return np.exp(lnKW)
 
-    def calc_KB(self) -> float:
+    def calc_KB(self) -> np.float64:
         """Calculates the boric acid equilibrium constant (KB) for the
         reaction:
                         B(OH)3 --> B(OH)4 + H.
@@ -129,12 +142,19 @@ class ModifiedGranTitrationNew:
         """
         return (0.002050 * self.salinity) / 35
 
-    def calc_H_concentration(self, ph: float) -> float:
+    def calc_H_concentration(self, ph: float) -> np.float64:
         """Calculates the hydrogen ion concentration at a particular pH.
+        ***For individual floats only***
         """
         return np.power(10, -1 * ph)
 
-    def calc_concentration_denominator(self, ph: float) -> float:
+    def calc_H_concentration_array(self, pharray: np.ndarray) -> np.ndarray:
+        """Calculates the hydrogen ion concentration at a particular pH.
+        ***For numpy arrays only***
+        """
+        return np.power(10, np.multiply(-1, pharray))
+
+    def calc_concentration_denominator(self, ph: float) -> np.float64:
         """Calculates the common denominator term in the expressions
         for the concentrations of bicarbonate and carbonate:
 
@@ -143,7 +163,7 @@ class ModifiedGranTitrationNew:
         H_conc = self.calc_H_concentration(ph)
         return (H_conc**2) + (self.K1 * H_conc) + (self.K1 * self.K2)
 
-    def calc_carbonate_alkalinity(self, ph: float) -> float:
+    def calc_carbonate_alkalinity(self, ph: float) -> np.float64:
         """Calculates the carbonate alkalinity:
 
                         Ac = [HCO3] + 2[CO3],
@@ -160,7 +180,7 @@ class ModifiedGranTitrationNew:
 
         return self.DIC * (alpha_C1 + (2 * alpha_C2))
 
-    def calc_borate_alkalinity(self, ph: float) -> float:
+    def calc_borate_alkalinity(self, ph: float) -> np.float64:
         """Calculates the borate alkalinity:
 
                           Ab = [B(OH)4],
@@ -168,14 +188,9 @@ class ModifiedGranTitrationNew:
         at a given pH using the estimated level of total borate.
         """
         H_conc = self.calc_H_concentration(ph)
-        return self.BT * (self.KB / (self.KB + H_conc))
+        return self.BT / (1 + (H_conc / self.KB))
 
-    def get_last_ph(self) -> float:
-        """Returns the pH reading from the most recent titration step.
-        """
-        return self.ph_array[-1]
-
-    def get_required_acid_vol(self, target_ph: float) -> float:
+    def calc_required_acid_vol(self, target_ph: float) -> float:
         """Calculates the volume of HCl required to lower the pH from
         the most recent pH reading to the target pH.
         """
@@ -206,22 +221,51 @@ class ModifiedGranTitrationNew:
                 * ((1 / H_conc_final) - (1 / H_conc_initial))
             )
         )
-        return required_vol
+        return float(required_vol)
+
+    def calc_ygran(self, pHs: np.ndarray, volumes: np.ndarray) -> np.ndarray:
+        """
+        """
+        H_conc_array = self.calc_H_concentration_array(pHs)
+        print(f"H_concentration_array: {H_conc_array}")
+
+        adj_volumes = np.add(self.sample_mass_kg, volumes)
+
+        # total moles of H+ at each step?
+        return np.multiply(adj_volumes, H_conc_array)
 
     def gran_calc(self) -> Tuple[float, float, float]:
         """Give this a more explanatory name
         """
-        volumes = self.volumeAdded[self.pHs < 3.8]  # need to be numpy arrays
-        pHs = self.pHs[self.pHs < 3.8]
-        pH_modified = np.power(10, np.multiply(-1, pHs))
 
-        ygran = np.multiply(np.add(self.sampleSize, volumes), pH_modified)
+        # Take volumes of steps with ph under 3.8. Must be numpy arrays
+        volumes = self.volume_array[self.ph_array < 3.8]
+        print(f"Volume array: {volumes}")
 
+        # Take ph of steps with ph under 3.8. Must be numpy arrays
+        pHs = self.ph_array[self.ph_array < 3.8]
+        print(f"pH array: {pHs}")
+
+        ygran = self.calc_ygran(pHs, volumes)
+        print(f"ygran: {ygran}")
+
+        # xModel should just be the volumes input, yModel should be
+        # some re-fit of the ygran array?
         slope, intercept, xModel, yModel, rsquare = rsq.RSQ(volumes, ygran)
-        gamma = slope / Cacid
-        Veq = -1 * intercept / slope
-        molIn = Veq * Cacid
+        print(f"Slope: {slope}, int: {intercept}, xModel: {xModel}, yModel: {yModel}, rsq: {rsquare}")
 
-        TA = molIn / self.sampleSize * 1000000
+        gamma = slope / self.acid_conc_M
+        print(f"Gamma: {gamma}")
+        # Veq: HCO3/H2CO3 equivalence point volume, volume HCl needed to
+        # drive all HCO3 into H2CO3
+        Veq = -1 * intercept / slope
+        print(f"Veq: {Veq}")
+
+        # Hansson/Jagner 1973 lists this as moles alkalinity/kg seawater?
+        molIn = Veq * self.acid_conc_M
+        print(f"molIn: {molIn}")
+
+        TA = molIn / self.sample_mass_kg * 1e6
+        print(f"TA: {TA}")
 
         return TA, gamma, rsquare
