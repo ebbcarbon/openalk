@@ -193,6 +193,9 @@ class ModifiedGranTitrationNew:
     def calc_required_acid_vol(self, target_ph: float) -> float:
         """Calculates the volume of HCl required to lower the pH from
         the most recent pH reading to the target pH.
+
+        ***Different calculations used in the original code for initial
+        and final titrations
         """
         initial_ph = self.get_last_ph()
 
@@ -234,8 +237,9 @@ class ModifiedGranTitrationNew:
         # total moles of H+ at each step?
         return np.multiply(adj_volumes, H_conc_array)
 
-    def gran_calc(self) -> Tuple[float, float, float]:
-        """Give this a more explanatory name
+    def gran_polynomial_fit(self) -> Tuple[float, float, float]:
+        """Fits a polynomial of degree 1 to the volume and hydrogen ion
+        concentration data.
         """
 
         # Take volumes of steps with ph under 3.8. Must be numpy arrays

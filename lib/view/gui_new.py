@@ -35,6 +35,8 @@ class App(tk.Tk):
         self._sleep_var = tk.IntVar(self)
         self._stop_titration = False
 
+        self.DEGAS_TIME_S = 360
+
         """
         Should probably break out all the UI initialization into a separate
         function for clarity
@@ -230,6 +232,9 @@ class App(tk.Tk):
             self.reset_manual_pump_controls()
             return
 
+        """
+        some kind of bug here -- list index out of range on pH message
+        """
         meas_initial = self.ph_meter.get_measurement()
         ph_initial = meas_initial["pH"]
         emf_initial = meas_initial["mV"]
@@ -275,8 +280,11 @@ class App(tk.Tk):
         """
         # Check if last pH reading is below 3.8, if so move to next step
         if titration.pHs[-1] < 3.8:
-            print("Moving to second titration step")
             self.after_cancel(self.initial_titration)
+            print("Reached pH target.")
+            print(f"Waiting {self.DEGAS_TIME_S / 60} minutes for CO2 degassing...")
+            self.tksleep(self.DEGAS_TIME_S)
+            print("Moving to second titration step")
             self.auto_titration(titration, acid_conc)
             return
 

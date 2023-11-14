@@ -69,10 +69,10 @@ class ModifiedGranTitration:
             np.square(np.power(10, -1 * pHf)) + K1c * np.power(10, -1 * pHf) + K1c * K2c
         )
         alphaC1init = K1c * np.power(10, -1 * self.pHs[-1]) / denumCinit
-        alphaC2init = np.square(K1c * K2c) / denumCinit
+        alphaC2init = (K1c * K2c) / denumCinit
         C_alk_i = DIC * (2 * alphaC2init + alphaC1init)
         alphaC1f = K1c * np.power(10, -1 * pHf) / denumCf
-        alphaC2f = np.square(K1c * K2c) / denumCf
+        alphaC2f = (K1c * K2c) / denumCf
         C_alk_f = DIC * (2 * alphaC2f + alphaC1f)
         BAi = TB * (KB / (KB + np.power(10, -1 * self.pHs[-1])))
         BAf = TB * (KB / (KB + np.power(10, -1 * pHf)))
