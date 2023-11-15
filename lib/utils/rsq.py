@@ -63,9 +63,6 @@ def RSQ(x: np.ndarray, y: np.ndarray) -> Tuple[np.float64, np.float64,
 
     workMatrix[:, [2]] = yModel
 
-    plt.plot(xModel, y, 'r.', xModel, yModel)
-    plt.show()
-
     # Calculate SSE, SSR, SST
 
     workMatrix[:, [3]] = np.subtract(workMatrix[:, [1]], workMatrix[:, [2]])  # SSE

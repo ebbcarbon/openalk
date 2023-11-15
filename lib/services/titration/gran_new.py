@@ -2,7 +2,7 @@ from typing import Tuple
 
 import numpy as np
 
-from lib.utils import rsq
+from lib.utils import regression
 
 class ModifiedGranTitrationNew:
     def __init__(self, sample_mass: float, salinity: float, acid_conc: float,
@@ -25,10 +25,20 @@ class ModifiedGranTitrationNew:
         self.BT = self.calc_BT()
         self.DIC = self.calc_DIC()
 
-    def get_last_ph(self) -> np.float64:
+    def get_last_volume(self) -> float:
+        """Returns the volume reading from the most recent titration step.
+        """
+        return float(self.volume_array[-1])
+
+    def get_last_ph(self) -> float:
         """Returns the pH reading from the most recent titration step.
         """
-        return self.ph_array[-1]
+        return float(self.ph_array[-1])
+
+    def get_last_emf(self) -> float:
+        """Returns the emf reading from the most recent titration step.
+        """
+        return float(self.emf_array[-1])
 
     def add_step_data(self, ph: float, emf: float, volume: float) -> None:
         """Adds the pH/emf readings and volume of titrant added at
@@ -36,7 +46,10 @@ class ModifiedGranTitrationNew:
         """
         self.ph_array = np.append(self.ph_array, ph)
         self.emf_array = np.append(self.emf_array, emf)
-        self.volume_array = np.append(self.volume_array, volume)
+
+        last_volume = self.get_last_volume()
+        new_volume = last_volume + volume
+        self.volume_array = np.append(self.volume_array, new_volume)
 
     def calc_IS(self) -> float:
         """Calculates ionic strength (IS) of the sample.
@@ -227,7 +240,8 @@ class ModifiedGranTitrationNew:
         return float(required_vol)
 
     def calc_ygran(self, pHs: np.ndarray, volumes: np.ndarray) -> np.ndarray:
-        """
+        """Calculates the hydrogen ion concentration array for the
+        regression.
         """
         H_conc_array = self.calc_H_concentration_array(pHs)
         print(f"H_concentration_array: {H_conc_array}")
@@ -253,13 +267,13 @@ class ModifiedGranTitrationNew:
         ygran = self.calc_ygran(pHs, volumes)
         print(f"ygran: {ygran}")
 
-        # xModel should just be the volumes input, yModel should be
-        # some re-fit of the ygran array?
-        slope, intercept, xModel, yModel, rsquare = rsq.RSQ(volumes, ygran)
-        print(f"Slope: {slope}, int: {intercept}, xModel: {xModel}, yModel: {yModel}, rsq: {rsquare}")
+        slope, intercept, x_model, y_model, rsq = regression.linear_regression(
+                                                                volumes, ygran)
+        print(f"Slope: {slope}, int: {intercept}, xModel: {x_model}, yModel: {y_model}, rsq: {rsq}")
 
         gamma = slope / self.acid_conc_M
         print(f"Gamma: {gamma}")
+
         # Veq: HCO3/H2CO3 equivalence point volume, volume HCl needed to
         # drive all HCO3 into H2CO3
         Veq = -1 * intercept / slope
@@ -272,4 +286,4 @@ class ModifiedGranTitrationNew:
         TA = molIn / self.sample_mass_kg * 1e6
         print(f"TA: {TA}")
 
-        return TA, gamma, rsquare
+        return TA, gamma, rsq

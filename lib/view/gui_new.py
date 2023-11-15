@@ -13,7 +13,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # Local libraries
 from lib.services.ph import orion_star
 from lib.services.pump import norgren
-from lib.services.titration import gran
+from lib.services.titration import gran_new
 
 
 class SystemStates(Enum):
@@ -248,21 +248,19 @@ class App(tk.Tk):
         self.stop_button.configure(state=tk.NORMAL)
         self.state_label.configure(text="Titration started")
 
-        titration = gran.ModifiedGranTitration(
-            float(sample_mass), float(salinity), float(temp_initial),
-            np.array([float(ph_initial)]), np.array([float(emf_initial)]),
-            np.array([0])
+        titration = gran_new.ModifiedGranTitrationNew(
+            float(sample_mass), float(salinity), float(acid_conc),
+            float(temp_initial), float(ph_initial), float(emf_initial)
         )
 
         print("Filling syringe...")
         self.pump.fill()
         self.tksleep(15)
 
-        """Fix this"""
-        self.initial_titration(titration, float(acid_conc))
+        self.initial_titration(titration)
 
-    def initial_titration(self, titration: gran.ModifiedGranTitration,
-                              acid_conc: float) -> None:
+    def initial_titration(self, titration: gran_new.ModifiedGranTitrationNew)
+                                                                    -> None:
         # Stopping logic. Need to think of a better way to do this.
         # Need to reset interface after this is triggered
         # Where does the syringe empty to in this case?
@@ -279,25 +277,24 @@ class App(tk.Tk):
         of titration steps from 3.5 to 3 is about 20.
         """
         # Check if last pH reading is below 3.8, if so move to next step
-        if titration.pHs[-1] < 3.8:
+        if titration.get_last_ph() < 3.8:
             self.after_cancel(self.initial_titration)
             print("Reached pH target.")
             print(f"Waiting {self.DEGAS_TIME_S / 60} minutes for CO2 degassing...")
             self.tksleep(self.DEGAS_TIME_S)
             print("Moving to second titration step")
-            self.auto_titration(titration, acid_conc)
+            self.auto_titration(titration)
             return
 
-        pHf = 3.79
+        ph_target = 3.79
 
-        self.run_titration_step(titration, acid_conc, pHf)
+        self.run_titration_step(titration, ph_target)
 
         # Schedule next titration step, setting time=0 makes it run
         # immediately whenever the mainloop is not busy
-        self.after(0, self.initial_titration, titration, acid_conc)
+        self.after(0, self.initial_titration, titration)
 
-    def auto_titration(self, titration: gran.ModifiedGranTitration,
-                          acid_conc: float) -> None:
+    def auto_titration(self, titration: gran_new.ModifiedGranTitrationNew) -> None:
         # Stopping logic. Need to think of a better way to do this.
         if self._stop_titration:
             self.after_cancel(self.auto_titration)
@@ -308,12 +305,12 @@ class App(tk.Tk):
         """
         Stop if last pH less than 3, or if number of steps > 25(???)
         """
-        if titration.pHs[-1] < 3 or len(titration.pHs) > 25:
+        if titration.get_last_ph() < 3 or len(titration.ph_array) > 25:
             self.after_cancel(self.auto_titration)
-            print(f"Final pH: {titration.pHs[-1]}")
+            print(f"Final pH: {titration.get_last_ph()}")
 
-            TA, gamma, rsquare = titration.granCalc(acid_conc)
-            print(f"TA: {TA}, Gamma: {gamma}, Rsq: {rsquare}")
+            TA, gamma, rsq = titration.gran_polynomial_fit()
+            print(f"TA: {TA}, Gamma: {gamma}, Rsq: {rsq}")
 
             self.update_ta_output(TA)
 
@@ -324,30 +321,30 @@ class App(tk.Tk):
             return
 
         """This stage goes much more slowly, in increments of 0.1 pH"""
-        pHi = titration.pHs[-1]
-        pHf = pHi - 0.1
+        ph_initial = titration.get_last_ph()
+        ph_target = ph_initial - 0.1
 
-        self.run_titration_step(titration, acid_conc, pHf)
+        self.run_titration_step(titration, ph_target)
 
         # Schedule next titration step, setting time=0 makes it run
         # immediately whenever the mainloop is not busy
-        self.after(0, self.auto_titration, titration, acid_conc)
+        self.after(0, self.auto_titration, titration)
 
-    def run_titration_step(self, titration: gran.ModifiedGranTitration,
-                              acid_conc: float, pHf: float) -> None:
+    def run_titration_step(self, titration: gran_new.ModifiedGranTitrationNew,
+                                        ph_target: float) -> None:
         # Get the volume of acid required to dose at the next step, in liters
-        required_acid_volume_liters = titration.requiredVol(acid_conc, pHf)
+        required_acid_vol_liters = titration.calc_required_acid_vol(ph_target)
 
-        required_acid_volume_ul = round(required_acid_volume_liters * 1e6, 2)
+        required_acid_vol_ul = round(required_acid_vol_liters * 1e6, 2)
 
-        if not self.pump.check_volume_available(required_acid_volume_liters):
+        if not self.pump.check_volume_available(required_acid_vol_liters):
             print("Volume low, re-filling...")
             self.pump.fill()
             self.tksleep(15)
 
         # Dispense required volume of acid
-        print(f"Dispensing: {required_acid_volume_ul} uL")
-        self.pump.dispense(required_acid_volume_liters)
+        print(f"Dispensing: {required_acid_vol_ul} uL")
+        self.pump.dispense(required_acid_vol_liters)
         # Wait 5 seconds to dispense acid
         self.tksleep(5)
 
@@ -359,16 +356,10 @@ class App(tk.Tk):
         print(f"pH: {pH}, emf: {emf}")
 
         # Add last measurements to titration
-        titration.pHs = np.append(titration.pHs, float(pH))
-        titration.emf = np.append(titration.emf, float(emf))
-
-        titration.volumeAdded = np.append(
-            titration.volumeAdded,
-            titration.volumeAdded[-1] + required_acid_volume_liters,
-        )
+        titration.add_step_data(float(pH), float(emf), required_acid_vol_liters)
 
         # Plot current step
-        self.plot(titration.volumeAdded, titration.emf)
+        self.plot(titration.volume_array, titration.emf_array)
 
     def plot(self, x: np.array, y: np.array) -> None:
         if len(x) >= 3:
@@ -388,38 +379,14 @@ class App(tk.Tk):
 
         with open(filename + ".csv", "w") as f:
             writer = csv.writer(f, delimiter=",")
-            writer.writerow(["Sample Size (g):"] + [str(titration.sampleSize * 1000)])
-            writer.writerow(["Temperature (C):"] + [str(titration.T - 273.15)])
-            writer.writerow(["Salinity:"] + [str(titration.S)])
-            writer.writerow(["Emf:"] + [",".join(titration.emf.astype(str))])
+            writer.writerow(["Sample Size (g):"] + [str(titration.sample_mass_kg * 1000)])
+            writer.writerow(["Temperature (C):"] + [str(titration.temp_K - 273.15)])
+            writer.writerow(["Salinity:"] + [str(titration.salinity_input)])
+            writer.writerow(["Emf:"] + [",".join(titration.emf_array.astype(str))])
             writer.writerow(
-                ["Volume Added:"] + [",".join(titration.volumeAdded.astype(str))]
+                ["Volume Added:"] + [",".join(titration.volume_array.astype(str))]
             )
-            writer.writerow(["pH:"] + [",".join(titration.pHs.astype(str))])
-            writer.writerow(["Total Alkalinity:"] + [str(TA)])
-
-    """
-    Placeholder for new writer logic behind an export button. If this is
-    dependent on attributes of the last titration instance, it will break
-    when you start a new one.
-    """
-    def export_data(self) -> None:
-        default_filename = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
-        filepath = tk.filedialog.asksaveasfilename(
-                      initialfile=default_filename,
-                      defaultextension=".csv",
-                      filetypes=[("CSV", "*.csv")]
-        )
-        with open(filepath, "w") as f:
-            writer = csv.writer(f, delimiter=",")
-            writer.writerow(["Sample Size (g):"] + [str(titration.sampleSize * 1000)])
-            writer.writerow(["Temperature (C):"] + [str(titration.T - 273.15)])
-            writer.writerow(["Salinity:"] + [str(titration.S)])
-            writer.writerow(["Emf:"] + [",".join(titration.emf.astype(str))])
-            writer.writerow(
-                ["Volume Added:"] + [",".join(titration.volumeAdded.astype(str))]
-            )
-            writer.writerow(["pH:"] + [",".join(titration.pHs.astype(str))])
+            writer.writerow(["pH:"] + [",".join(titration.ph_array.astype(str))])
             writer.writerow(["Total Alkalinity:"] + [str(TA)])
 
     def stop_titration(self) -> None:
