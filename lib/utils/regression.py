@@ -4,6 +4,9 @@ import numpy as np
 
 def linear_regression(x: np.ndarray, y: np.ndarray) -> Tuple[np.float64,
                             np.float64, np.ndarray, np.ndarray, np.float64]:
+    """Takes in two numpy arrays, x and y, and fits a degree one polynomial
+    from x to y.
+    """
     x = np.expand_dims(x, axis=0)
     y = np.expand_dims(y, axis=0)
 
