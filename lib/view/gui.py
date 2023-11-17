@@ -351,6 +351,7 @@ class App(tk.Tk):
         # Dispense required volume of acid
         print(f"Dispensing: {required_acid_vol_ul} uL")
         self.pump.dispense(required_acid_vol_liters)
+
         # Wait 5 seconds to dispense acid
         self.tksleep(5)
 
@@ -379,23 +380,36 @@ class App(tk.Tk):
     Bad writer logic. Header should be something like:
     time, titration_step, sample_mass_g, temp_C, salinity, emf_mV,
     volume_added_L, pH, total_alkalinity_umol_kg
-
-    NOTE: add acid titrant concentration to data
     """
     def write_data(self, titration, TA) -> None:
         filename = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
 
         with open(filename + ".csv", "w") as f:
             writer = csv.writer(f, delimiter=",")
-            writer.writerow(["Sample Size (g):"] + [str(titration.sample_mass_kg * 1000)])
-            writer.writerow(["Temperature (C):"] + [str(titration.temp_K - 273.15)])
-            writer.writerow(["Salinity:"] + [str(titration.salinity)])
-            writer.writerow(["Emf:"] + [",".join(titration.emf_array.astype(str))])
+            writer.writerow(
+                ["Sample Size (g):"] + [str(titration.sample_mass_kg * 1000)]
+            )
+            writer.writerow(
+                ["Temperature (C):"] + [str(titration.temp_K - 273.15)]
+            )
+            writer.writerow(
+                ["Salinity:"] + [str(titration.salinity)]
+            )
+            writer.writerow(
+                ["Acid Concentration (M):"] + [str(titration.acid_conc_M)]
+            )
+            writer.writerow(
+                ["Emf:"] + [",".join(titration.emf_array.astype(str))]
+            )
             writer.writerow(
                 ["Volume Added:"] + [",".join(titration.volume_array.astype(str))]
             )
-            writer.writerow(["pH:"] + [",".join(titration.ph_array.astype(str))])
-            writer.writerow(["Total Alkalinity:"] + [str(TA)])
+            writer.writerow(
+                ["pH:"] + [",".join(titration.ph_array.astype(str))]
+            )
+            writer.writerow(
+                ["Total Alkalinity:"] + [str(TA)]
+            )
 
     def stop_titration(self) -> None:
         self._stop_titration = True
