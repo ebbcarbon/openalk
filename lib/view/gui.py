@@ -87,8 +87,6 @@ class App(tk.Tk):
         self.empty_button = tk.Button(self, text="Empty", padx=20, command=self.pump.empty)
         self.wash_button = tk.Button(self, text="Wash", padx=20, command=self.pump.wash)
 
-        self.export_button = tk.Button(self, text="Export Data", padx=20, command=self.export_data)
-
         # Grid arrangement of input fields, buttons
         self.initial_mass_label.grid(row=0, column=0, sticky="NSEW")
         self.initial_mass_input.grid(row=1, column=0)
@@ -118,7 +116,6 @@ class App(tk.Tk):
         self.fill_button.grid(row=4, column=2)
         self.empty_button.grid(row=4, column=3)
         self.wash_button.grid(row=4, column=4)
-        self.export_button.grid(row=3, column=5)
 
         self.state_label.grid(row=6, column=0)
 
