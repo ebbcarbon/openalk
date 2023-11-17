@@ -48,44 +48,60 @@ class App(tk.Tk):
         self.option_add("*font", "Arial 13")
 
         # Input field definition and titles
-        self.initial_mass_label = tk.Label(self, text="Insert sample mass (g): ", padx=20)
+        self.initial_mass_label = tk.Label(self,
+            text="Insert sample mass (g): ", padx=20
+        )
         self.initial_mass_input = tk.Entry(self, width=10)
 
-        self.temperature_label = tk.Label(self, text="Insert temperature (C): ", padx=20)
+        self.temperature_label = tk.Label(self,
+            text="Insert temperature (C): ", padx=20
+        )
         self.temperature_input = tk.Entry(self, width=10)
 
-        self.salinity_label = tk.Label(self, text="Insert sample salinity (S): ", padx=20)
+        self.salinity_label = tk.Label(self,
+            text="Insert sample salinity (S): ", padx=20
+        )
         self.salinity_input = tk.Entry(self, width=10)
 
-        self.acid_conc_label = tk.Label(self, text="Insert titrant acid concentration (M): ", padx=20)
+        self.acid_conc_label = tk.Label(self,
+            text="Insert titrant acid concentration (M): ", padx=20
+        )
         self.acid_conc_input = tk.Entry(self, width=10)
 
-        self.total_alk_label = tk.Label(self, text="Total Alkalinity (umol/kg): ", padx=20)
+        self.total_alk_label = tk.Label(self,
+            text="Total Alkalinity (umol/kg): ", padx=20
+        )
         self.total_alk_output = tk.Entry(self, width=10)
 
-        self.state_label = tk.Label(
-            self, text="Ready", fg="green", pady=10
+        self.state_label = tk.Label(self,
+            text="Ready", fg="green", pady=10
         )
 
         # Button definitions
-        self.start_button = tk.Button(
-            self, text="Start", bg="green", padx=20, command=self.start_titration
+        self.start_button = tk.Button(self,
+            text="Start", bg="green", padx=20, command=self.start_titration
         )
-
-        self.stop_button = tk.Button(
-            self, text="Stop Titration", padx=10, command=self.stop_titration
+        self.stop_button = tk.Button(self,
+            text="Stop Titration", padx=10, command=self.stop_titration
         )
-
-        self.exit_button = tk.Button(
-            self, text="Exit", bg="red", padx=20, command=self.quit_program
+        self.exit_button = tk.Button(self,
+            text="Exit", bg="red", padx=20, command=self.quit_program
         )
-
-        self.wm_exit_handler = self.protocol("WM_DELETE_WINDOW", self.quit_program)
-
-        self.reset_button = tk.Button(self, text="Reset", padx=20, command=self.reset_interface)
-        self.fill_button = tk.Button(self, text="Fill", padx=20, command=self.pump.fill)
-        self.empty_button = tk.Button(self, text="Empty", padx=20, command=self.pump.empty)
-        self.wash_button = tk.Button(self, text="Wash", padx=20, command=self.pump.wash)
+        self.wm_exit_handler = self.protocol(
+            "WM_DELETE_WINDOW", self.quit_program
+        )
+        self.reset_button = tk.Button(self,
+            text="Reset", padx=20, command=self.reset_interface
+        )
+        self.fill_button = tk.Button(self,
+            text="Fill", padx=20, command=self.pump.fill
+        )
+        self.empty_button = tk.Button(self,
+            text="Empty", padx=20, command=self.pump.empty
+        )
+        self.wash_button = tk.Button(self,
+            text="Wash", padx=20, command=self.pump.wash
+        )
 
         # Grid arrangement of input fields, buttons
         self.initial_mass_label.grid(row=0, column=0, sticky="NSEW")
@@ -120,7 +136,8 @@ class App(tk.Tk):
         self.state_label.grid(row=6, column=0)
 
         # General TkApp stuff
-        self.fig, self.ax = plt.subplots(figsize=(3.5, 3), constrained_layout=True)
+        self.fig, self.ax = plt.subplots(figsize=(3.5, 3),
+                                          constrained_layout=True)
         self.ax.set_xlabel("Volume Added (L)")
         self.ax.set_ylabel("Emf (mV)")
         self.canvas = FigureCanvasTkAgg(self.fig, self)
@@ -132,14 +149,18 @@ class App(tk.Tk):
     def check_pump_ready(self) -> bool:
         init_pump = self.pump.initialize_pump()
         if not init_pump['host_ready']:
-            tk.messagebox.showerror("Error", "Pump connection failed.")
+            tk.messagebox.showerror(
+                "Error", "Pump connection failed."
+            )
             return False
         return True
 
     def check_ph_meter_ready(self) -> bool:
         test_measurement = self.ph_meter.get_measurement()
         if not test_measurement:
-            tk.messagebox.showerror("Error", "pH meter connection failed.")
+            tk.messagebox.showerror(
+                "Error", "pH meter connection failed."
+            )
             return False
         return True
 
@@ -162,13 +183,19 @@ class App(tk.Tk):
 
         valid = True
         if not sample_mass:
-            tk.messagebox.showerror("Error", "Please provide sample mass.")
+            tk.messagebox.showerror(
+                "Error", "Please provide sample mass."
+            )
             valid = False
         if not salinity:
-            tk.messagebox.showerror("Error", "Please provide sample salinity.")
+            tk.messagebox.showerror(
+                "Error", "Please provide sample salinity."
+            )
             valid = False
         if not acid_conc:
-            tk.messagebox.showerror("Error", "Please provide acid concentration.")
+            tk.messagebox.showerror(
+                "Error", "Please provide acid concentration."
+            )
             valid = False
 
         return valid, float(sample_mass), float(salinity), float(acid_conc)
@@ -296,7 +323,7 @@ class App(tk.Tk):
 
             self.write_data(titration, TA)
 
-            """There was originally a call to reset everything here, fix this"""
+            """There was originally a call to reset everything here"""
             # self.reset()
             return
 
