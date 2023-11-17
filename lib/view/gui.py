@@ -389,7 +389,7 @@ class App(tk.Tk):
             writer = csv.writer(f, delimiter=",")
             writer.writerow(["Sample Size (g):"] + [str(titration.sample_mass_kg * 1000)])
             writer.writerow(["Temperature (C):"] + [str(titration.temp_K - 273.15)])
-            writer.writerow(["Salinity:"] + [str(titration.salinity_input)])
+            writer.writerow(["Salinity:"] + [str(titration.salinity)])
             writer.writerow(["Emf:"] + [",".join(titration.emf_array.astype(str))])
             writer.writerow(
                 ["Volume Added:"] + [",".join(titration.volume_array.astype(str))]
