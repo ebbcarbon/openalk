@@ -1,3 +1,9 @@
 #!/bin/bash
 
-cp install/ta.desktop $HOME/Desktop
+GIT_TOPLEVEL=$(git rev-parse --show-toplevel)
+
+echo "Installing with repo location $GIT_TOPLEVEL"
+
+sed "s+<REPO_LOCATION>+$GIT_TOPLEVEL+g" install/ta.desktop > $HOME/Desktop/ta.desktop
+
+echo "Installed."
