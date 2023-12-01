@@ -9,7 +9,6 @@ class PumpInterface:
     def __init__(self):
         self.SERIAL_PORT_LOC = None
         self.WASH_CYCLES = None
-
         self.LITERS_PER_STEP = None
 
     def initialize_pump(self):
