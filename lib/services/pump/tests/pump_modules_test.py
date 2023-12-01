@@ -44,3 +44,15 @@ def test_liters_to_steps_norgren(mock_init) -> None:
     steps = pump.liters_to_steps(volume=dummy_vol)
     assert isinstance(steps, int)
     assert steps == (int(dummy_vol / pump.LITERS_PER_STEP))
+
+@patch.object(norgren.VersaPumpV6, '__init__')
+def test_check_response_norgren(mock_init) -> None:
+    mock_init.return_value = None
+    pump = norgren.VersaPumpV6()
+
+    dummy_res = "/0`48000"
+    res_encoded = dummy_res.encode("ascii")
+
+    res = pump._check_response(res_encoded)
+    assert isinstance(res, dict)
+    assert res == {"host_ready": True, "module_ready": True, "msg": "48000"}
