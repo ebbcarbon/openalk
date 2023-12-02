@@ -241,7 +241,6 @@ class ModifiedGranTitration:
         """
         """
         H_conc_array = self.calc_H_concentration_array(pHs)
-        print(f"H_concentration_array: {H_conc_array}")
 
         adj_volumes = np.add(self.sample_mass_kg, volumes)
 
