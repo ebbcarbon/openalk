@@ -2,7 +2,6 @@
 # Tests MUST start with `test_` for pytest to find them
 
 import csv
-from unittest.mock import patch
 
 import numpy as np
 
@@ -54,6 +53,8 @@ titration = gran.ModifiedGranTitration(
 
 def test_init_attributes() -> None:
     assert titration.sample_mass_kg == rawdata['sample_mass_g'] / 1000
+    assert titration.salinity == rawdata['salinity']
+    assert titration.temp_C == rawdata['temp_C']
     assert titration.temp_K == rawdata['temp_C'] + 273.15
     assert len(titration.ph_array) == 1
     assert titration.ph_array[0] == rawdata['ph'][0]
