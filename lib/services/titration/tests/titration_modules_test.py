@@ -56,11 +56,11 @@ def test_init_attributes() -> None:
     assert titration.salinity == rawdata['salinity']
     assert titration.temp_C == rawdata['temp_C']
     assert titration.temp_K == rawdata['temp_C'] + 273.15
-    assert len(titration.ph_array) == 1
+    assert titration.ph_array.size == 1
     assert titration.ph_array[0] == rawdata['ph'][0]
-    assert len(titration.emf_array) == 1
+    assert titration.emf_array.size == 1
     assert titration.emf_array[0] == rawdata['emf_mV'][0]
-    assert len(titration.volume_array) == 1
+    assert titration.volume_array.size == 1
     assert titration.volume_array[0] == 0
 
 def test_getting_initial_data() -> None:
