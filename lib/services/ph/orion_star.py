@@ -42,17 +42,19 @@ class OrionStarA215(pHInterface):
             print(f"pH meter serial port open: {self.serial_port}")
 
     def get_measurement(self) -> dict:
+        """Polls the meter for measurements of pH, emf, and temperature.
+        """
         cmd = "GETMEAS"
         res_dict = self.send_meter_command(cmd)
         return res_dict
 
     def build_serial_command(self, cmd: str) -> bytes:
-        """Uses Thermo-specific formatting and converts to bytes"""
+        """Uses Thermo-specific formatting and converts to bytes.
+        """
         return f"{cmd}\r".encode("ascii")
 
     def send_meter_command(self, cmd: str) -> dict:
-        """
-        Builds and sends an encoded serial command and returns the decoded
+        """Builds and sends an encoded serial command and returns the decoded
         response.
         """
         serial_cmd = self.build_serial_command(cmd)
@@ -63,13 +65,16 @@ class OrionStarA215(pHInterface):
         return self.check_response(res_bytes)
 
     def check_response(self, res: bytes) -> dict:
-        """ Serial communications helper; schema defined in pH meter manual """
+        """Serial communications helper; schema defined in pH meter manual
+        """
         res_decoded = res.decode("ascii").rstrip().splitlines()[3]
 
-        """Add some error handling here to display any unexpected response"""
-
         # Split the response and take just the channel values
-        channel_values_raw = res_decoded.split('---')[1]
+        try:
+            channel_values_raw = res_decoded.split('---')[1]
+        except IndexError as e:
+            print(f"Invalid response from meter: {res_decoded}, Error: {e}")
+
         # Split the channel values and take pH, mV, and temp
         channel_values_list = channel_values_raw.split(',')
         return {"pH": channel_values_list[3], "mV": channel_values_list[5],

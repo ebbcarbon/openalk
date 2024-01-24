@@ -1,101 +1,71 @@
-import time
-
 
 class PumpInterface:
     """
-    This class defines an interface to a PumpModule.
+    This class defines the base interface to a pump.
     This class just defines the high-level operations of the pump,
     specific implementation classes should be used for devices.
     """
 
     def __init__(self):
-        self.syringe_pos = None
-        self.valve_state = None
-        self._sleep_func = None
-
-        # Conversion factor from mL to steps on the syringe
-        self.ML_TO_STEPS_FACTOR = None
+        self.SERIAL_PORT_LOC = None
+        self.WASH_CYCLES = None
+        self.LITERS_PER_STEP = None
 
     def initialize_pump(self):
+        """Send an initialize command to the pump.
         """
-        Send an initialize command to the pump.
-        """
-        pass
+        raise NotImplementedError("Use derived pump implementation class!")
 
     def get_syringe_position(self):
-        """
-        Get the syringe's current position. Min/Max positions should
+        """Get the syringe's current position. Min/Max positions should
         be pre-defined in an Enum.
         """
-        pass
+        raise NotImplementedError("Use derived pump implementation class!")
 
     def set_syringe_position(self, pos):
-        """
-        Move the syringe to an absolute position. Min/Max positions should
+        """Move the syringe to an absolute position. Min/Max positions should
         be pre-defined in an Enum.
         """
-        pass
+        raise NotImplementedError("Use derived pump implementation class!")
 
     def get_valve_state(self):
-        """
-        Get the current state of the pump's valve. Available states should
+        """Get the current state of the pump's valve. Available states should
         be pre-defined in an Enum.
         """
-        pass
+        raise NotImplementedError("Use derived pump implementation class!")
 
     def set_valve_state(self, state):
-        """
-        Set the pump's valve to a specified state. Available states should
+        """Set the pump's valve to a specified state. Available states should
         be pre-defined in an Enum.
         """
-        pass
+        raise NotImplementedError("Use derived pump implementation class!")
 
     def fill(self):
+        """Fill the syringe to the maximum position.
         """
-        Fill the syringe to the maximum position.
-        """
-        pass
+        raise NotImplementedError("Use derived pump implementation class!")
 
     def empty(self):
+        """Empty the syringe to the minimum position.
         """
-        Empty the syringe to the minimum position.
-        """
-        pass
+        raise NotImplementedError("Use derived pump implementation class!")
 
     def wash(self):
+        """Wash the unit.
         """
-        Wash the unit.
-        """
-        pass
+        raise NotImplementedError("Use derived pump implementation class!")
 
-    def aspirate(self, steps, port):
+    def liters_to_steps(self, volume):
+        """Translates volume in liters to steps on the syringe.
         """
-        Draw solution into syringe through the input port.
-        """
-        pass
+        raise NotImplementedError("Use derived pump implementation class!")
 
-    def dispense(self, steps, port):
+    def aspirate(self, volume):
+        """Draw solution into syringe through the input port.
         """
-        Dispense solution from syringe through the output port.
-        """
-        pass
+        raise NotImplementedError("Use derived pump implementation class!")
 
-    def set_sleep_func(self, sleep_func):
+    def dispense(self, volume):
+        """Dispense solution from syringe through the output port.
         """
-        Apps like tkApp need to use special sleep functionality here
-        Ignore otherwise
-        """
-        self._sleep_func = sleep_func
-
-    def sleep_msecs(self, t_msec):
-        """
-        Sleep for t_msec *milliseconds*
-        We call this out explicitly in the method so that it is very obvious!
-        lots of confusion if we mix secs and msecs
-        We need to use this so that we can separate
-        tkApp from console operations. Seems like tkApp doesn't like straight sleep calls
-        """
-        if self._sleep_func:
-            self._sleep_func(t_msec)
-        else:
-            time.sleep(t_msec / 1000.0)
+        raise NotImplementedError("Use derived pump implementation class!")
