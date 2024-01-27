@@ -63,7 +63,7 @@ class ModifiedGranTitration:
 
         pK1 = -log_10(K1), K1 = 10^(-pK1), etc.
 
-        (Mehrbach 1973 refitted by Dickson and Millero 1987)
+        (Mehrbach et al. 1973 refitted by Dickson & Millero 1987)
         """
         pK1 = (
             (3670.7 / self.temp_K)
@@ -81,7 +81,7 @@ class ModifiedGranTitration:
 
         pK2 = -log_10(K2), K2 = 10^(-pK2), etc.
 
-        (Mehrbach 1973 refitted by Dickson and Millero 1987)
+        (Mehrbach et al. 1973 refitted by Dickson & Millero 1987)
         """
         pK2 = (
             (1394.7 / self.temp_K)
@@ -98,7 +98,7 @@ class ModifiedGranTitration:
 
         lnKW = ln(KW), KW = exp(ln(KW)), etc.
 
-        (DOE 1994)
+        (Dickson & Goyet 1994)
         """
         lnKW = (
             - (13847.26 / self.temp_K)
