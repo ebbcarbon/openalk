@@ -1,5 +1,0 @@
-## Windows
-
-## MacOS
-
-## Linux
