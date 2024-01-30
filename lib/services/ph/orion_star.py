@@ -3,7 +3,7 @@ import serial
 from lib.services.ph.ph_interface import pHInterface
 
 """
-##### this meter speaks ASCII for all serial commands #####
+##### This meter speaks ASCII for all serial commands #####
 
 Make sure the "Export Data" and "DataLog" settings on the meter are both off,
 this will ensure the buffer is clear for request-response transactions.
