@@ -17,12 +17,22 @@ from lib.services.titration import gran
 
 
 class SystemStates(Enum):
+    """Enum values to be used with the self.system_state attribute.
+    """
     READY = auto()
     PROCESSING = auto()
     STOPPING = auto()
 
 
 class App(tk.Tk):
+    """Main Tkinter interface class.
+
+    Args:
+        None.
+
+    Returns:
+        None.
+    """
     def __init__(self) -> None:
         super().__init__()
 
@@ -40,6 +50,14 @@ class App(tk.Tk):
         self.system_state = SystemStates.READY
 
     def build_UI(self) -> None:
+        """Draws the main UI window before starting.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.title("Total Alkalinity")
 
         # Ideally set geometry to something more general
@@ -147,6 +165,14 @@ class App(tk.Tk):
         self.canvas.draw()
 
     def check_pump_ready(self) -> bool:
+        """Checks if the pump module initializes properly. Called on startup.
+
+        Args:
+            None.
+
+        Returns:
+            bool: True if ready, False otherwise.
+        """
         init_pump = self.pump.initialize_pump()
         if not init_pump['host_ready']:
             tk.messagebox.showerror(
@@ -156,6 +182,14 @@ class App(tk.Tk):
         return True
 
     def check_ph_meter_ready(self) -> bool:
+        """Checks if the pH meter is giving valid readings. Called on startup.
+
+        Args:
+            None.
+
+        Returns:
+            bool: True if ready, False otherwise.
+        """
         test_measurement = self.ph_meter.get_measurement()
         if not test_measurement:
             tk.messagebox.showerror(
@@ -165,18 +199,48 @@ class App(tk.Tk):
         return True
 
     def disable_inputs(self) -> None:
+        """Helper function to disable all UI inputs at once at the
+        beginning of a run.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.start_button.configure(state=tk.DISABLED)
         self.initial_mass_input.configure(state=tk.DISABLED)
         self.salinity_input.configure(state=tk.DISABLED)
         self.acid_conc_input.configure(state=tk.DISABLED)
 
     def reset_inputs(self) -> None:
+        """Helper function to re-enable all UI inputs at once after
+        a run has ended.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.start_button.configure(state=tk.NORMAL)
         self.initial_mass_input.configure(state=tk.NORMAL)
         self.salinity_input.configure(state=tk.NORMAL)
         self.acid_conc_input.configure(state=tk.NORMAL)
 
     def check_inputs(self) -> Tuple[bool, float, float, float]:
+        """Checks if the user has provided all the necessary information
+        about the sample before the run.
+
+        Args:
+            None.
+
+        Returns:
+            bool: True if all inputs are valid, False otherwise.
+            float: user-provided sample mass casted to float.
+            float: user-provided salinity casted to float.
+            float: user-provided acid concentration casted to float.
+        """
         sample_mass = self.initial_mass_input.get()
         salinity = self.salinity_input.get()
         acid_conc = self.acid_conc_input.get()
@@ -201,26 +265,71 @@ class App(tk.Tk):
         return valid, float(sample_mass), float(salinity), float(acid_conc)
 
     def disable_manual_pump_controls(self) -> None:
+        """Helper function to disable all pump controls at the beginning
+        of a run.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.fill_button.configure(state=tk.DISABLED)
         self.empty_button.configure(state=tk.DISABLED)
         self.wash_button.configure(state=tk.DISABLED)
 
     def reset_manual_pump_controls(self) -> None:
+        """Helper function to re-enable all pump controls at the end of a run.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.fill_button.configure(state=tk.NORMAL)
         self.empty_button.configure(state=tk.NORMAL)
         self.wash_button.configure(state=tk.NORMAL)
 
     def clear_outputs(self) -> None:
+        """Helper function to clear UI outputs before the next run.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.total_alk_output.configure(state=tk.NORMAL)
         self.total_alk_output.delete(0, tk.END)
         self.total_alk_output.configure(state=tk.DISABLED)
 
     def update_ta_output(self, value: float) -> None:
+        """Updates the total alkalinity reading at the end of a run.
+
+        Args:
+            value (float): the estimated total alkalinity resulting from
+                the titration process.
+
+        Returns:
+            None.
+        """
         self.total_alk_output.configure(state=tk.NORMAL)
         self.total_alk_output.insert(0, str(value))
         self.total_alk_output.configure(state=tk.DISABLED)
 
     def get_phmeter_measurements(self) -> Tuple[float, float, float]:
+        """Polls the pH meter for the current measurements of pH, emf,
+        and temperature.
+
+        Args:
+            None.
+
+        Returns:
+            float: pH value from the meter casted to float.
+            float: emf value from the meter casted to float.
+            float: temperature value from the meter casted to float.
+        """
         try:
             meas = self.ph_meter.get_measurement()
         except IndexError as e:
@@ -233,7 +342,15 @@ class App(tk.Tk):
         return float(ph_meas), float(emf_meas), float(temp_meas)
 
     def start_titration(self) -> None:
+        """Starts the main titration routine after gathering the
+        necessary data.
 
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.disable_inputs()
         self.disable_manual_pump_controls()
         self.clear_outputs()
@@ -276,6 +393,15 @@ class App(tk.Tk):
         self.initial_titration(titration)
 
     def initial_titration(self, titration: gran.ModifiedGranTitration) -> None:
+        """Runs the initial titration procedure from the starting pH to
+        the first target pH where data will be collected.
+
+        Args:
+            titration (ModifiedGranTitration): gran titration object.
+
+        Returns:
+            None.
+        """
         # Stopping logic. Need to think of a better way to do this.
         # Need to reset interface after this is triggered
         # Where does the syringe empty to in this case?
@@ -303,6 +429,15 @@ class App(tk.Tk):
         self.after(0, self.initial_titration, titration)
 
     def auto_titration(self, titration: gran.ModifiedGranTitration) -> None:
+        """Runs the second titration, in smaller steps, to collect data
+        for the total alkalinity estimate.
+
+        Args:
+            titration (ModifiedGranTitration): gran titration object.
+
+        Returns:
+            None.
+        """
         # Stopping logic. Need to think of a better way to do this.
         if self._stop_titration:
             self.after_cancel(self.auto_titration)
@@ -316,18 +451,17 @@ class App(tk.Tk):
             self.after_cancel(self.auto_titration)
             print(f"Final pH: {last_ph}")
 
-            TA, gamma, rsq = titration.gran_polynomial_fit()
-            print(f"TA: {TA}, Gamma: {gamma}, Rsq: {rsq}")
+            total_alkalinity, gamma, rsq = titration.gran_polynomial_fit()
+            print(f"TA: {total_alkalinity}, Gamma: {gamma}, Rsq: {rsq}")
 
-            self.update_ta_output(TA)
+            self.update_ta_output(total_alkalinity)
 
-            self.write_data(titration, TA)
+            self.write_data(titration, total_alkalinity)
 
             """There was originally a call to reset everything here"""
             # self.reset()
             return
 
-        """This stage goes much more slowly, in increments of 0.1 pH"""
         ph_target = last_ph - 0.1
 
         self.run_titration_step(titration, ph_target)
@@ -338,6 +472,16 @@ class App(tk.Tk):
 
     def run_titration_step(self, titration: gran.ModifiedGranTitration,
                                   ph_target: float) -> None:
+        """Handles the addition of acid and gathers measurements at
+        each individual titration step.
+
+        Args:
+            titration (ModifiedGranTitration): gran titration object.
+            ph_target (float): desired pH at the end of the step.
+
+        Returns:
+            None.
+        """
         # Get the volume of acid required to dose at the next step, in liters
         required_acid_vol_liters = titration.calc_required_acid_vol(ph_target)
 
@@ -355,12 +499,7 @@ class App(tk.Tk):
         # Wait 5 seconds to dispense acid
         self.tksleep(5)
 
-        """Currently this logic is blocking, the whole UI freezes. But
-        we need to wait for the meter to give stable readings. Alternatively,
-        we could run the meter in continuous mode and use our own stability
-        algorithm.
-        """
-        # Take pH, emf measurements
+        # Take pH, emf measurements -- this call is blocking
         pH, emf, _ = self.get_phmeter_measurements()
         print(f"pH: {pH}, emf: {emf}")
 
@@ -370,18 +509,37 @@ class App(tk.Tk):
         # Plot current step
         self.plot(titration.volume_array, titration.emf_array)
 
-    def plot(self, x: np.array, y: np.array) -> None:
+    def plot(self, x: np.ndarray, y: np.ndarray) -> None:
+        """Displays the updated titration data on the UI after each step.
+
+        Args:
+            x (np.ndarray): array of volume measurements.
+            y (np.ndarray): array of emf measurements.
+
+        Returns:
+            None.
+        """
         if len(x) >= 3:
             self.ax.scatter(x[2:], y[2:], color="blue")
             self.ax.autoscale()
             self.canvas.draw()
 
     """
-    Bad writer logic. Header should be something like:
+    TODO: Bad writer logic. Header should be something like:
     time, titration_step, sample_mass_g, temp_C, salinity, emf_mV,
     volume_added_L, pH, total_alkalinity_umol_kg
     """
-    def write_data(self, titration, TA) -> None:
+    def write_data(self, titration: gran.ModifiedGranTitration,
+                      total_alkalinity: float) -> None:
+        """Dumps the titration data to a csv file on the host.
+
+        Args:
+            titration (ModifiedGranTitration): gran titration object.
+            total_alkalinity (float): estimated total alkalinity value.
+
+        Returns:
+            None.
+        """
         filename = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
 
         with open(filename + ".csv", "w") as f:
@@ -408,14 +566,31 @@ class App(tk.Tk):
                 ["pH:"] + [",".join(titration.ph_array.astype(str))]
             )
             writer.writerow(
-                ["Total Alkalinity:"] + [str(TA)]
+                ["Total Alkalinity:"] + [str(total_alkalinity)]
             )
 
     def stop_titration(self) -> None:
+        """Gives the signal to stop the titration process in the middle
+        of a run.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self._stop_titration = True
         print("Stopping titration before next step...")
 
     def reset_interface(self) -> None:
+        """Resets all the interface elements at the end of a run.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.start_button.configure(state=tk.NORMAL)
         self.initial_mass_input.configure(state=tk.NORMAL)
         self.temperature_input.configure(state=tk.NORMAL)
@@ -429,11 +604,26 @@ class App(tk.Tk):
         return
 
     def tksleep(self, time: float) -> None:
-        '''Tkinter-compatible emulation of time.sleep(seconds)'''
-        self.after(time*1000, self._sleep_var.set, 1)
+        """Tkinter-compatible emulation of time.sleep(seconds).
+
+        Args:
+            time (float): time (in seconds) to wait before proceeding.
+
+        Returns:
+            None.
+        """
+        self.after(time * 1000, self._sleep_var.set, 1)
         self.wait_variable(self._sleep_var)
 
     def quit_program(self):
+        """Handles any close event and prompts for confirmation.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         if self.system_state == SystemStates.PROCESSING:
             mb = tk.messagebox.askyesnocancel("Warning",
                 "Titration in progress, are you sure you want to quit?")

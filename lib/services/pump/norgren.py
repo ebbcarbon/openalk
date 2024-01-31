@@ -36,6 +36,10 @@ and gives the current syringe position (24000).
 
 @unique
 class ValveStates(Enum):
+    """Enum values to store the pump's encoding of states of the valve. The
+    values 1,2,3 are actually what gets sent back in the message to denote
+    these states.
+    """
     INPUT = 1
     BYPASS = 2
     OUTPUT = 3
