@@ -20,11 +20,14 @@ class OrionStarA215(pHInterface):
 
     Args:
         serial_port_loc (str): location of the serial port on the host.
-        baud_rate (int): baudrate setting taken from the pH meter.
+            Defaults to /dev/ttyACM0, which is the port assigned on a linux
+            host when it's the only device plugged in.
+        baud_rate (int): baudrate for the serial connection. Defaults
+            to 9600 since this is the meter's default setting.
         serial_timeout (int): timeout (in seconds) after which the serial
-            port will be closed if no message is received. The default of
-            600 is important for the current functionality, so be careful
-            not to change it.
+            port will be closed if no message is received. Defaults to 600.
+            The default of 600 is important for the current functionality,
+            so be careful not to change it.
 
     Returns:
         None.

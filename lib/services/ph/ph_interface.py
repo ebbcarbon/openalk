@@ -9,4 +9,8 @@ class pHInterface:
         self.serial_port_loc = None
 
     def get_measurement(self) -> dict:
+        """Polls the meter for measurements of pH, emf, and temperature.
+
+        ***Override this method in the child class***
+        """
         raise NotImplementedError("Use derived pH meter implementation class!")

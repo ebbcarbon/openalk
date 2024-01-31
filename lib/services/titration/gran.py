@@ -380,9 +380,10 @@ class ModifiedGranTitration:
             None.
 
         Returns:
-            total_alkalinity (float): estimated total alkalinity (in mol/kg).
-            gamma (float): quality of fit metric.
-            rsq (float): R-squared of the fit.
+            tuple containing:
+             - total_alkalinity (float): estimated total alkalinity (in mol/kg).
+             - gamma (float): quality of fit metric.
+             - rsq (float): R-squared of the fit.
         """
         # Take volumes of steps with ph under 3.8. Must be numpy arrays
         volumes = self.volume_array[self.ph_array < 3.8]

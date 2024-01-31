@@ -236,10 +236,11 @@ class App(tk.Tk):
             None.
 
         Returns:
-            bool: True if all inputs are valid, False otherwise.
-            float: user-provided sample mass casted to float.
-            float: user-provided salinity casted to float.
-            float: user-provided acid concentration casted to float.
+            tuple containing:
+             - bool: True if all inputs are valid, False otherwise.
+             - float: user-provided sample mass casted to float.
+             - float: user-provided salinity casted to float.
+             - float: user-provided acid concentration casted to float.
         """
         sample_mass = self.initial_mass_input.get()
         salinity = self.salinity_input.get()
@@ -326,9 +327,10 @@ class App(tk.Tk):
             None.
 
         Returns:
-            float: pH value from the meter casted to float.
-            float: emf value from the meter casted to float.
-            float: temperature value from the meter casted to float.
+            tuple containing:
+             - float: pH value from the meter casted to float.
+             - float: emf value from the meter casted to float.
+             - float: temperature value from the meter casted to float.
         """
         try:
             meas = self.ph_meter.get_measurement()

@@ -11,11 +11,12 @@ def linear_regression(x: np.ndarray, y: np.ndarray) -> Tuple[np.float64,
         y (np.ndarray): y-coordinates of the sample points.
 
     Returns:
-        slope (np.float64): slope of the line of best fit.
-        intercept (np.float64): intercept of the line of best fit.
-        x_model (np.ndarray): original x-coordinates.
-        y_model (np.ndarray): y-coordinates after fitting.
-        rsq (np.float64): R-squared value.
+        tuple containing:
+         - slope (np.float64): slope of the line of best fit.
+         - intercept (np.float64): intercept of the line of best fit.
+         - x_model (np.ndarray): original x-coordinates.
+         - y_model (np.ndarray): y-coordinates after fitting.
+         - rsq (np.float64): R-squared value.
     """
     x = np.expand_dims(x, axis=0)
     y = np.expand_dims(y, axis=0)
