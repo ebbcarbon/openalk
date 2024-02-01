@@ -3,70 +3,111 @@ import serial
 from lib.services.ph.ph_interface import pHInterface
 
 """
-***pH meter speaks ASCII for serial commands***
+##### This meter speaks ASCII for all serial commands #####
 
 Make sure the "Export Data" and "DataLog" settings on the meter are both off,
 this will ensure the buffer is clear for request-response transactions.
 
-Commands given in the form of "<OPCODE> <OPERAND>\r"
+Commands given in the form of "<OPCODE> <OPERAND>\r".
 
-We should really only need to take data in from the meter at this point,
-so use "GETMEAS \r"
-
+Example pH channel response:
+b'GETMEAS         \r\n\r\n\rA215 pH,X51250,3.04,ABCDE,12/07/23
+  09:30:40,---,CH-1,pH,4.61,pH,111.2, mV,25.0,C,89.1,%,M100,#1\n\r\r>'
 """
 
 class OrionStarA215(pHInterface):
-    def __init__(self) -> None:
+    """Serial interface for Orion Star A215 pH meters.
+
+    Args:
+        serial_port_loc (str): location of the serial port on the host.
+            Defaults to /dev/ttyACM0, which is the port assigned on a linux
+            host when it's the only device plugged in.
+        baud_rate (int): baudrate for the serial connection. Defaults
+            to 9600 since this is the meter's default setting.
+        serial_timeout (int): timeout (in seconds) after which the serial
+            port will be closed if no message is received. Defaults to 600.
+            The default of 600 is important for the current functionality,
+            so be careful not to change it.
+
+    Returns:
+        None.
+    """
+    def __init__(self, serial_port_loc: str = '/dev/ttyACM0',
+                    baud_rate: int = 9600, serial_timeout: int = 600) -> None:
         super().__init__()
 
-        self.SERIAL_PORT_LOC = '/dev/ttyACM0'
-        self.BAUD_RATE = 9600
+        self.serial_port_loc = serial_port_loc
+        self.baud_rate = baud_rate
+        self.serial_timeout = serial_timeout
 
-        """
-        Serial timeout of 10 minutes to wait for stable pH reading. This is
-        pretty hacky.
-        """
-        self.SERIAL_TIMEOUT = 600
+        # Meter protocol uses > as the end-of-response character
+        self.end_response_char = b'\r>'
 
-        print(f"Connecting to pH meter on port {self.SERIAL_PORT_LOC}...")
+        print(f"Connecting to pH meter on port {self.serial_port_loc}...")
 
         self.serial_port = serial.Serial(
-            port = self.SERIAL_PORT_LOC,
-            baudrate = self.BAUD_RATE,
+            port = self.serial_port_loc,
+            baudrate = self.baud_rate,
             bytesize = serial.EIGHTBITS,
             parity = serial.PARITY_NONE,
             stopbits = serial.STOPBITS_ONE,
-            timeout = self.SERIAL_TIMEOUT
+            timeout = self.serial_timeout
         )
         if self.serial_port.is_open:
             print(f"pH meter serial port open: {self.serial_port}")
 
     def get_measurement(self) -> dict:
         """Polls the meter for measurements of pH, emf, and temperature.
+
+        Args:
+            None.
+
+        Returns:
+            dict: {"pH": (str), "mV": (str), "temp": (str)}
         """
         cmd = "GETMEAS"
-        res_dict = self.send_meter_command(cmd)
+        res_dict = self._send_meter_command(cmd)
         return res_dict
 
-    def build_serial_command(self, cmd: str) -> bytes:
+    def _build_serial_command(self, cmd: str) -> bytes:
         """Uses Thermo-specific formatting and converts to bytes.
+
+        Args:
+            cmd (str): the command to be encoded, e.g. "GETMEAS".
+
+        Returns:
+            bytes: ascii-encoded command, e.g. b'GETMEAS\r'
         """
         return f"{cmd}\r".encode("ascii")
 
-    def send_meter_command(self, cmd: str) -> dict:
-        """Builds and sends an encoded serial command and returns the decoded
-        response.
+    def _send_meter_command(self, cmd: str) -> dict:
+        """Sends an encoded serial command and returns the decoded response.
+
+        Args:
+            cmd (str): the command to be encoded, e.g. "GETMEAS".
+
+        Returns:
+            dict: {"pH": (str), "mV": (str), "temp": (str)}
         """
-        serial_cmd = self.build_serial_command(cmd)
+        serial_cmd = self._build_serial_command(cmd)
         self.serial_port.write(serial_cmd)
 
-        # Meter protocol uses > as the end-of-response character
-        res_bytes = self.serial_port.read_until(expected=b'\r>')
-        return self.check_response(res_bytes)
+        res_bytes = self.serial_port.read_until(
+                        expected=self.end_response_char
+                    )
+        return self._check_response(res_bytes)
 
-    def check_response(self, res: bytes) -> dict:
-        """Serial communications helper; schema defined in pH meter manual
+    def _check_response(self, res: bytes) -> dict:
+        """Helper function to parse data from serial messages.
+
+        Args:
+            res (bytes): encoded response coming from the pH meter. See
+                above for examples.
+
+        Returns:
+            dict: {"pH": (str), "mV": (str), "temp": (str)}
         """
+        # Decode the response and strip leading newlines
         res_decoded = res.decode("ascii").rstrip().splitlines()[3]
 
         # Split the response and take just the channel values

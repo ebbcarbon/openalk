@@ -20,5 +20,6 @@ doi:10.1016/0198-0149(87)90021-5
 ```
 Mehrbach C, Culberson CH, Hawley JE, Pytkowicz RM. Measurement of the apparent
 dissociation constants of carbonic acid in seawater at atmospheric pressure.
-Limnology and Oceanography. 1973; 18(6):897-907. doi:10.4319/lo.1973.18.6.0897
+Limnology and Oceanography. 1973; 18(6):897-907.
+doi:10.4319/lo.1973.18.6.0897
 ```

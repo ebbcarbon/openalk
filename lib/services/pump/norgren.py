@@ -4,9 +4,8 @@ from enum import Enum, unique
 
 from lib.services.pump.pump_interface import PumpInterface
 
-
 """
-***Pump speaks ASCII for serial commands***
+##### This pump speaks ASCII for all serial commands #####
 
 Valid communications response always begins with /0 (host address)
 Any individual pump module can be queried/commanded with its number, e.g. /1
@@ -28,80 +27,158 @@ Commands (all require an "R" after the command to run)
 Queries (do not require an "R")
 "?" queries syringe position, given in absolute steps from the valve
 "?8" queries valve status, with 1 == input, 2 == bypass, 3 == output
+
+Example pump response (to command "?"):
+b'/0`24000'
+Indicates host communication is valid (/0), the pump module is ready (`),
+and gives the current syringe position (24000).
 """
 
 @unique
 class ValveStates(Enum):
+    """Enum values to store the pump's encoding of states of the valve. The
+    values 1,2,3 are actually what gets sent back in the message to denote
+    these states.
+    """
     INPUT = 1
     BYPASS = 2
     OUTPUT = 3
 
 
 class VersaPumpV6(PumpInterface):
-    '''
-    Interface for the Norgren Kloehn Versa Pump 6, 55 series.
-    Our device shows P/N 55022, and is the 48k step version.
-    '''
-    def __init__(self) -> None:
+    """Serial interface for Norgren Kloehn Versa Pump V6, 55 series.
+
+    Args:
+        serial_port_loc (str): location of the serial port on the host.
+            Defaults to /dev/ttyUSB0, which is the port assigned on a linux
+            host when it's the only device plugged in.
+        baud_rate (int): baudrate for the serial connection. Defaults to 9600
+            since this is the pump's default setting.
+        serial_timeout (int): timeout (in seconds) after which the serial
+            port will be closed if no message is received. Defaults to 2.
+
+    Returns:
+        None.
+    """
+    def __init__(self, serial_port_loc: str = '/dev/ttyUSB0',
+                    baud_rate: int = 9600, serial_timeout: int = 2) -> None:
         super().__init__()
 
-        self.SERIAL_PORT_LOC = '/dev/ttyUSB0'
-        self.BAUD_RATE = 9600
-        self.SERIAL_TIMEOUT = 2
+        self.serial_port_loc = serial_port_loc
+        self.baud_rate = baud_rate
+        self.serial_timeout = serial_timeout
 
-        self.WASH_CYCLES = 3
+        # Pump protocol uses FF hex as end-of-packet character
+        self.end_packet_char = b'\xff'
+        # Pump protocol uses 03 hex as end-of-response character
+        self.end_response_char = b'\x03'
+
+        # Number of fill-empty cycles for syringe washing routine
+        self.wash_cycles = 3
 
         # Syringe size in liters, ours is currently 2.5mL
-        self.SYRINGE_SIZE_L_IDEAL = 0.0025
+        self.syringe_size_liters_ideal = 0.0025
 
         # Correction for approx. 1% error seen across the range
-        self.SYRINGE_SIZE_L_CALIB = 0.002478
+        self.syringe_size_liters_calib = 0.002478
 
-        self.SYRINGE_POSITION_MIN = 0
-        self.SYRINGE_POSITION_MAX = 48000
-        self.SYRINGE_POSITION_RANGE = range(self.SYRINGE_POSITION_MIN,
-                                            self.SYRINGE_POSITION_MAX + 1)
+        # Create range object for all valid syringe positions
+        self.syringe_position_min = 0
+        self.syringe_position_max = 48000
+        self.syringe_position_range = range(self.syringe_position_min,
+                                            self.syringe_position_max + 1)
 
-        self.LITERS_PER_STEP = (self.SYRINGE_SIZE_L_CALIB /
-                                    self.SYRINGE_POSITION_MAX)
+        # Get liters per step of the syringe to make calculations easier
+        self.liters_per_step = (self.syringe_size_liters_calib /
+                                    self.syringe_position_max)
 
-        print(f"Connecting to pump on port {self.SERIAL_PORT_LOC}...")
+        print(f"Connecting to pump on port {self.serial_port_loc}...")
 
-        """ Most of these parameters are defined in the pump manual """
         self.serial_port = serial.Serial(
-            port = self.SERIAL_PORT_LOC,
-            baudrate = self.BAUD_RATE,
+            port = self.serial_port_loc,
+            baudrate = self.baud_rate,
             bytesize = serial.EIGHTBITS,
             parity = serial.PARITY_NONE,
             stopbits = serial.STOPBITS_ONE,
-            timeout = self.SERIAL_TIMEOUT
+            timeout = self.serial_timeout
         )
         if self.serial_port.is_open:
             print(f"Pump serial port open: {self.serial_port}")
 
     def initialize_pump(self) -> dict:
+        """Sends the serial command to initialize the pump.
+
+        Required after any loss of power or power-cycle, and will
+        reset the syringe position to 0; be cautious about calling this
+        if the syringe is full.
+
+        Args:
+            None.
+
+        Returns:
+            dict: {"host_ready": (bool), "module_ready": (bool), "msg": (str)}
+        """
         cmd = "W4R"
         res_dict = self._send_pump_command(cmd)
         return res_dict
 
     def check_module_ready(self) -> bool:
+        """Checks if the pump module is ready to execute another command.
+
+        Args:
+            None.
+
+        Returns:
+            bool: True if ready, False if busy.
+        """
         cmd = ""
         res_dict = self._send_pump_command(cmd)
         return res_dict["module_ready"]
 
     def check_volume_available(self, volume: float) -> bool:
+        """Compares the requested volume (in liters) to the available volume.
+
+        This function converts liters to steps to do the calculations in the
+        pump's native units.
+
+        Args:
+            volume (float): the volume (in liters) requested for the next
+                titration step.
+
+        Returns:
+            bool: True if the volume is available, False otherwise.
+        """
         steps_requested = self.liters_to_steps(volume)
         current_position = self.get_syringe_position()
         return current_position > steps_requested
 
     def get_syringe_position(self) -> int:
+        """Gets the current position (in steps) of the syringe.
+
+        Args:
+            None.
+
+        Returns:
+            int: position in steps.
+        """
         cmd = "?"
         res_dict = self._send_pump_command(cmd)
         syringe_position = int(res_dict["msg"])
         return syringe_position
 
     def set_syringe_position(self, pos: int) -> dict:
-        if not pos in self.SYRINGE_POSITION_RANGE:
+        """Requests a move of the syringe to an absolute position.
+
+        The requested position must be between the minimum and maximum step
+        count for the syringe in use.
+
+        Args:
+            pos (int): the requested position (in steps).
+
+        Returns:
+            dict: {"host_ready": (bool), "module_ready": (bool), "msg": (str)}
+        """
+        if not pos in self.syringe_position_range:
             raise ValueError(f"Invalid position {pos}.")
 
         cmd = f"A{pos}R"
@@ -109,12 +186,28 @@ class VersaPumpV6(PumpInterface):
         return res_dict
 
     def get_valve_state(self) -> ValveStates:
+        """Checks if the valve is in input, bypass, or output mode.
+
+        Args:
+            None.
+
+        Returns:
+            ValveStates: enum object representing input/bypass/output.
+        """
         cmd = "?8"
         res_dict = self._send_pump_command(cmd)
         valve_state_raw = int(res_dict['msg'])
         return ValveStates(valve_state_raw)
 
     def set_valve_state(self, state: ValveStates) -> dict:
+        """Requests a change of valve state.
+
+        Args:
+            state (ValveStates): enum object representing input/bypass/output.
+
+        Returns:
+            dict: {"host_ready": (bool), "module_ready": (bool), "msg": (str)}
+        """
         if not type(state) == ValveStates:
             raise ValueError(f"Invalid state {state}.")
 
@@ -128,6 +221,14 @@ class VersaPumpV6(PumpInterface):
         return res_dict
 
     def fill(self) -> dict:
+        """Fills the syringe by moving to the maximum position.
+
+        Args:
+            None.
+
+        Returns:
+            dict: {"host_ready": (bool), "module_ready": (bool), "msg": (str)}
+        """
         valve_state = self.get_valve_state()
         if not valve_state == ValveStates.INPUT:
             set = self.set_valve_state(state=ValveStates.INPUT)
@@ -135,11 +236,19 @@ class VersaPumpV6(PumpInterface):
         while not self.check_module_ready():
             time.sleep(0.25)
 
-        cmd = f"A{self.SYRINGE_POSITION_MAX}R"
+        cmd = f"A{self.syringe_position_max}R"
         res_dict = self._send_pump_command(cmd)
         return res_dict
 
     def empty(self) -> dict:
+        """Empties the syringe by moving to the minimum position.
+
+        Args:
+            None.
+
+        Returns:
+            dict: {"host_ready": (bool), "module_ready": (bool), "msg": (str)}
+        """
         valve_state = self.get_valve_state()
         if not valve_state == ValveStates.OUTPUT:
             set = self.set_valve_state(state=ValveStates.OUTPUT)
@@ -147,13 +256,21 @@ class VersaPumpV6(PumpInterface):
         while not self.check_module_ready():
             time.sleep(0.25)
 
-        cmd = f"A{self.SYRINGE_POSITION_MIN}R"
+        cmd = f"A{self.syringe_position_min}R"
         res_dict = self._send_pump_command(cmd)
         return res_dict
 
     def wash(self) -> dict:
+        """Runs a specified number of fill-empty cycles to wash the syringe.
+
+        Args:
+            None.
+
+        Returns:
+            dict: {"host_ready": (bool), "module_ready": (bool), "msg": (str)}
+        """
         last_res = None
-        for _ in range(self.WASH_CYCLES):
+        for _ in range(self.wash_cycles):
             fill_res_dict = self.fill()
             last_res = fill_res_dict
             while not self.check_module_ready():
@@ -166,12 +283,32 @@ class VersaPumpV6(PumpInterface):
         return last_res
 
     def liters_to_steps(self, volume: float) -> int:
-        return int(volume / self.LITERS_PER_STEP)
+        """Converts a volume (in liters) to steps on the syringe.
+
+        Args:
+            volume (float): volume (in liters) to convert to steps.
+
+        Returns:
+            int: step count equivalent to the provided volume.
+        """
+        return int(volume / self.liters_per_step)
 
     def aspirate(self, volume: float) -> dict:
+        """Draws a specific volume (in liters) into the syringe.
+
+        Note that this is a relative volume (i.e. from wherever the syringe
+        is currently positioned), and repeated calls to this method will be
+        additive rather than starting from 0.
+
+        Args:
+            volume (float): volume (in liters) to draw into the syringe.
+
+        Returns:
+            dict: {"host_ready": (bool), "module_ready": (bool), "msg": (str)}
+        """
         steps = self.liters_to_steps(volume)
 
-        if not steps in self.SYRINGE_POSITION_RANGE:
+        if not steps in self.syringe_position_range:
             raise ValueError(f"Invalid position {steps}.")
 
         valve_state = self.get_valve_state()
@@ -186,9 +323,21 @@ class VersaPumpV6(PumpInterface):
         return res_dict
 
     def dispense(self, volume: float) -> dict:
+        """Dispenses a specific volume (in liters) from the syringe.
+
+        Note that this is a relative volume (i.e. from wherever the syringe
+        is currently positioned), and repeated calls to this method will be
+        additive rather than starting from 0.
+
+        Args:
+            volume (float): volume (in liters) to dispense from the syringe.
+
+        Returns:
+            dict: {"host_ready": (bool), "module_ready": (bool), "msg": (str)}
+        """
         steps = self.liters_to_steps(volume)
 
-        if not steps in self.SYRINGE_POSITION_RANGE:
+        if not steps in self.syringe_position_range:
             raise ValueError(f"Invalid position {steps}.")
 
         valve_state = self.get_valve_state()
@@ -202,34 +351,55 @@ class VersaPumpV6(PumpInterface):
         res_dict = self._send_pump_command(cmd)
         return res_dict
 
-    def _send_pump_command(self, cmd: str) -> dict:
+    def _build_serial_command(self, cmd: str) -> bytes:
+        """Uses Norgren-specific formatting and converts to bytes.
+
+        Args:
+            cmd (str): the command to be encoded, e.g. "A24000R".
+
+        Returns:
+            bytes: ascii-encoded command, e.g. b'/1A24000R\r'.
         """
-        Builds and sends an encoded serial command and returns the decoded
-        response.
+        return f"/1{cmd}\r".encode("ascii")
+
+    def _send_pump_command(self, cmd: str) -> dict:
+        """Sends an encoded serial command and returns the decoded response.
+
+        Args:
+            cmd (str): the command to be encoded, e.g. "A24000R".
+
+        Returns:
+            dict: {"host_ready": (bool), "module_ready": (bool), "msg": (str)}
         """
         serial_cmd = self._build_serial_command(cmd)
         self.serial_port.write(serial_cmd)
 
-        # Pump protocol uses FF hex as end-of-packet character
-        res_bytes = self.serial_port.read_until(expected=b'\xff')
-        # Pump protocol uses 03 hex as end-of-response character
-        res_bytes_cleaned = res_bytes.split(b'\x03')[0]
+        res_bytes = self.serial_port.read_until(expected=self.end_packet_char)
+        res_bytes_cleaned = res_bytes.split(self.end_response_char)[0]
         return self._check_response(res_bytes_cleaned)
 
-    def _build_serial_command(self, cmd: str) -> bytes:
-        """Uses Norgren-specific string formatting and converts to bytes"""
-        return f"/1{cmd}\r".encode("ascii")
-
     def _check_response(self, res: bytes) -> dict:
-        """ Serial communications helper; schema defined in pump manual """
+        """Helper function to parse data from serial messages.
+
+        Args:
+            res (bytes): encoded response coming from the pump. See
+                above for examples.
+
+        Returns:
+            dict: {"host_ready": (bool), "module_ready": (bool), "msg": (str)}
+        """
+        # Decode the response and strip whitespace
         res_decoded = res.decode("ascii").rstrip()
 
+        # Check if communication with the host was successful
         host_status = res_decoded[:2]
         host_ready = True if host_status == '/0' else False
 
+        # Check if the pump module is ready to take commands
         module_status = res_decoded[2]
         module_ready = True if module_status == '`' else False
 
+        # Parse the response message
         msg = res_decoded[3:]
         return {"host_ready": host_ready, "module_ready": module_ready,
                     "msg": msg}

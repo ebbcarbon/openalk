@@ -1,15 +1,14 @@
 
 class PumpInterface:
     """
-    This class defines the base interface to a pump.
-    This class just defines the high-level operations of the pump,
-    specific implementation classes should be used for devices.
+    This class defines the high-level operations of the pump;
+    specific implementation classes should be used for each device, with
+    this class as the parent.
     """
-
     def __init__(self):
-        self.SERIAL_PORT_LOC = None
-        self.WASH_CYCLES = None
-        self.LITERS_PER_STEP = None
+        self.serial_port_loc = None
+        self.wash_cycles = None
+        self.liters_per_step = None
 
     def initialize_pump(self):
         """Send an initialize command to the pump.
