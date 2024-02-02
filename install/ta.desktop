@@ -1,6 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Name=TA Titrator
+Path=<REPO_LOCATION>
 Exec=<REPO_LOCATION>/run.sh
 Icon=<REPO_LOCATION>/install/ebb_stacked.png
 Type=Application

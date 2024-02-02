@@ -1,5 +1,5 @@
 #!/bin/bash
 
-source $HOME/envs/ta-venv/bin/activate
+source venv/bin/activate
 
-python3 $HOME/src/ta_autotitrator/run.py
+python3 run.py

@@ -1,8 +1,0 @@
-pyserial
-numpy
-matplotlib
-flake8
-black
-pytest
-pytest-cov
-pep8-naming
