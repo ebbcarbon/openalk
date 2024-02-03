@@ -1,8 +1,11 @@
 import time
 import serial
+import logging
 from enum import Enum, unique
 
 from lib.services.pump.pump_interface import PumpInterface
+
+logger = logging.getLogger(__name__)
 
 """
 ##### This pump speaks ASCII for all serial commands #####
@@ -92,7 +95,7 @@ class VersaPumpV6(PumpInterface):
         self.liters_per_step = (self.syringe_size_liters_calib /
                                     self.syringe_position_max)
 
-        print(f"Connecting to pump on port {self.serial_port_loc}...")
+        logger.info(f"Connecting to pump on port {self.serial_port_loc}...")
 
         self.serial_port = serial.Serial(
             port = self.serial_port_loc,
@@ -103,7 +106,7 @@ class VersaPumpV6(PumpInterface):
             timeout = self.serial_timeout
         )
         if self.serial_port.is_open:
-            print(f"Pump serial port open: {self.serial_port}")
+            logger.info(f"Pump serial port open: {self.serial_port}")
 
     def initialize_pump(self) -> dict:
         """Sends the serial command to initialize the pump.
