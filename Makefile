@@ -17,10 +17,12 @@ uninstall:
 
 .PHONY: test
 test:
-	python -m pytest --cov
+	. venv/bin/activate; \
+	python -m pytest --cov;
 
 .PHONY: lint
 lint:
-	black .
-	flake8 .
+	. venv/bin/activate; \
+	black .; \
+	flake8 .;
 
