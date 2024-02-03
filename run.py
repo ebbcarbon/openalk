@@ -25,6 +25,16 @@ class StreamLogger:
         self._msg = ""
 
     def write(self, msg: str) -> None:
+        """Takes the message coming from the stream and logs it without
+        newlines for better formatting.
+
+        Args:
+            msg (str): stream message; this should never need to be called
+                explicitly since it overrides sys.<stream>.write.
+
+        Returns:
+            None.
+        """
         self._msg = self._msg + msg
         while "\n" in self._msg:
             pos = self._msg.find("\n")
@@ -32,6 +42,15 @@ class StreamLogger:
             self._msg = self._msg[pos+1:]
 
     def flush(self) -> None:
+        """Dummy flush method put here in case some extra flushing logic
+        is ever needed.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         pass
 
 if __name__ == "__main__":
