@@ -54,12 +54,12 @@ class StreamLogger:
         pass
 
 if __name__ == "__main__":
-    logfn = f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-    logfp = os.path.join("logs", logfn)
+    log_filename = f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+    log_filepath = os.path.join("logs", log_filename)
 
     logging.basicConfig(
-        level=logging.DEBUG,
-        filename=logfp,
+        level=logging.INFO,
+        filename=log_filepath,
         filemode="w",
         format="[%(levelname)s|%(filename)s|L%(lineno)s] %(asctime)s: %(message)s",
         datefmt="%Y-%m-%dT%H:%M:%S%z"
