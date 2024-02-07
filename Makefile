@@ -1,13 +1,16 @@
+.ONESHELL:
+
 .PHONY: install
 install:
-	GIT_TOPLEVEL=$(shell git rev-parse --show-toplevel); \
-	echo "Installing with repo location $$GIT_TOPLEVEL"; \
-	sed "s+<REPO_LOCATION>+$$GIT_TOPLEVEL+g" install/ta.desktop > $$HOME/Desktop/ta.desktop; \
-	sed "s+<REPO_LOCATION>+$$GIT_TOPLEVEL+g" install/ta.desktop > $$HOME/.local/share/applications/ta.desktop; \
-	chmod a+x $$HOME/Desktop/ta.desktop; \
-	python3 -m venv venv; \
-	. venv/bin/activate; \
-	pip3 install --upgrade pip && pip3 install -r requirements.txt;
+	PROJECT_ROOT=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+	cd $$PROJECT_ROOT
+	echo "Installing with repo location $$PROJECT_ROOT"
+	sed "s+<REPO_LOCATION>+$$PROJECT_ROOT+g" install/ta.desktop > $$HOME/Desktop/ta.desktop
+	sed "s+<REPO_LOCATION>+$$PROJECT_ROOT+g" install/ta.desktop > $$HOME/.local/share/applications/ta.desktop
+	chmod a+x $$HOME/Desktop/ta.desktop
+	python3 -m venv venv
+	. venv/bin/activate
+	pip3 install --upgrade pip && pip3 install -r requirements.txt
 
 .PHONY: uninstall
 uninstall:
@@ -17,12 +20,11 @@ uninstall:
 
 .PHONY: test
 test:
-	. venv/bin/activate; \
-	python -m pytest --cov;
+	. venv/bin/activate
+	python -m pytest --cov
 
 .PHONY: lint
 lint:
-	. venv/bin/activate; \
-	black .; \
-	flake8 .;
-
+	. venv/bin/activate
+	black .
+	flake8 .
