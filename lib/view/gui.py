@@ -1,5 +1,6 @@
 # Standard libraries
 import csv
+import logging
 import tkinter as tk
 from datetime import datetime
 from enum import Enum, auto
@@ -15,6 +16,7 @@ from lib.services.ph import orion_star
 from lib.services.pump import norgren
 from lib.services.titration import gran
 
+logger = logging.getLogger(__name__)
 
 class SystemStates(Enum):
     """Enum values to be used with the self.system_state attribute.
@@ -388,7 +390,7 @@ class App(tk.Tk):
             sample_mass, salinity, acid_conc, temp_init, ph_init, emf_init
         )
 
-        print("Filling syringe...")
+        logger.info("Filling syringe...")
         self.pump.fill()
         self.tksleep(15)
 
@@ -409,7 +411,7 @@ class App(tk.Tk):
         # Where does the syringe empty to in this case?
         if self._stop_titration:
             self.after_cancel(self.initial_titration)
-            print("Titration cancelled.")
+            logger.info("Titration cancelled.")
             self._stop_titration = False
             return
 
@@ -418,7 +420,7 @@ class App(tk.Tk):
         # Check if last pH reading is below 3.8, if so move to next step
         if last_ph < 3.8:
             self.after_cancel(self.initial_titration)
-            print("Reached pH target. Moving to second titration step...")
+            logger.info("Reached pH target. Moving to second titration step...")
             self.auto_titration(titration)
             return
 
@@ -443,7 +445,7 @@ class App(tk.Tk):
         # Stopping logic. Need to think of a better way to do this.
         if self._stop_titration:
             self.after_cancel(self.auto_titration)
-            print("Titration cancelled.")
+            logger.info("Titration cancelled.")
             self._stop_titration = False
             return
 
@@ -451,10 +453,10 @@ class App(tk.Tk):
 
         if last_ph < 3 or len(titration.ph_array) > 25:
             self.after_cancel(self.auto_titration)
-            print(f"Final pH: {last_ph}")
+            logger.info(f"Final pH: {last_ph}")
 
             total_alkalinity, gamma, rsq = titration.gran_polynomial_fit()
-            print(f"TA: {total_alkalinity}, Gamma: {gamma}, Rsq: {rsq}")
+            logger.info(f"TA: {total_alkalinity}, Gamma: {gamma}, Rsq: {rsq}")
 
             self.update_ta_output(total_alkalinity)
 
@@ -490,12 +492,12 @@ class App(tk.Tk):
         required_acid_vol_ul = round(required_acid_vol_liters * 1e6, 2)
 
         if not self.pump.check_volume_available(required_acid_vol_liters):
-            print("Volume low, re-filling...")
+            logger.info("Volume low, re-filling...")
             self.pump.fill()
             self.tksleep(15)
 
         # Dispense required volume of acid
-        print(f"Dispensing: {required_acid_vol_ul} uL")
+        logger.info(f"Dispensing: {required_acid_vol_ul} uL")
         self.pump.dispense(required_acid_vol_liters)
 
         # Wait 5 seconds to dispense acid
@@ -503,7 +505,7 @@ class App(tk.Tk):
 
         # Take pH, emf measurements -- this call is blocking
         pH, emf, _ = self.get_phmeter_measurements()
-        print(f"pH: {pH}, emf: {emf}")
+        logger.info(f"pH: {pH}, emf: {emf}")
 
         # Add last measurements to titration
         titration.add_step_data(pH, emf, required_acid_vol_liters)
@@ -582,7 +584,7 @@ class App(tk.Tk):
             None.
         """
         self._stop_titration = True
-        print("Stopping titration before next step...")
+        logger.info("Stopping titration before next step...")
 
     def reset_interface(self) -> None:
         """Resets all the interface elements at the end of a run.

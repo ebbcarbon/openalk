@@ -1,8 +1,11 @@
+import logging
 from typing import Tuple
 
 import numpy as np
 
 from lib.utils import regression
+
+logger = logging.getLogger(__name__)
 
 class ModifiedGranTitration:
     """Utility class for calculating parameters of a modified gran titration.
@@ -387,34 +390,34 @@ class ModifiedGranTitration:
         """
         # Take volumes of steps with ph under 3.8. Must be numpy arrays
         volumes = self.volume_array[self.ph_array < 3.8]
-        print(f"Volume array: {volumes}")
+        logger.info(f"Volume array: {volumes}")
 
         # Take ph of steps with ph under 3.8. Must be numpy arrays
         pHs = self.ph_array[self.ph_array < 3.8]
-        print(f"pH array: {pHs}")
+        logger.info(f"pH array: {pHs}")
 
         ygran = self.calc_ygran(pHs, volumes)
-        print(f"ygran: {ygran}")
+        logger.info(f"ygran: {ygran}")
 
         slope, intercept, x_model, y_model, rsq = regression.linear_regression(
                                                                 volumes, ygran)
-        print(f"Slope: {slope}, int: {intercept}")
-        print(f"xModel: {x_model}, yModel: {y_model}")
-        print(f"rsq: {rsq}")
+        logger.info(f"Slope: {slope}, int: {intercept}")
+        logger.info(f"xModel: {x_model}, yModel: {y_model}")
+        logger.info(f"rsq: {rsq}")
 
         gamma = slope / self.acid_conc_M
-        print(f"Gamma: {gamma}")
+        logger.info(f"Gamma: {gamma}")
 
         # Veq: HCO3/H2CO3 equivalence point volume, volume HCl needed to
         # drive all HCO3 into H2CO3
         Veq = -1 * intercept / slope
-        print(f"Veq: {Veq}")
+        logger.info(f"Veq: {Veq}")
 
         # Hansson/Jagner 1973 lists this as moles alkalinity/kg seawater
         molIn = Veq * self.acid_conc_M
-        print(f"molIn: {molIn}")
+        logger.info(f"molIn: {molIn}")
 
         total_alkalinity = molIn / self.sample_mass_kg * 1e6
-        print(f"TA: {total_alkalinity}")
+        logger.info(f"TA: {total_alkalinity}")
 
         return total_alkalinity, gamma, rsq

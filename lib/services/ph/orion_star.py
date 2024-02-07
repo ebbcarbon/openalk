@@ -1,6 +1,9 @@
 import serial
+import logging
 
 from lib.services.ph.ph_interface import pHInterface
+
+logger = logging.getLogger(__name__)
 
 """
 ##### This meter speaks ASCII for all serial commands #####
@@ -43,7 +46,7 @@ class OrionStarA215(pHInterface):
         # Meter protocol uses > as the end-of-response character
         self.end_response_char = b'\r>'
 
-        print(f"Connecting to pH meter on port {self.serial_port_loc}...")
+        logger.info(f"Connecting to pH meter on port {self.serial_port_loc}...")
 
         self.serial_port = serial.Serial(
             port = self.serial_port_loc,
@@ -54,7 +57,7 @@ class OrionStarA215(pHInterface):
             timeout = self.serial_timeout
         )
         if self.serial_port.is_open:
-            print(f"pH meter serial port open: {self.serial_port}")
+            logger.info(f"pH meter serial port open: {self.serial_port}")
 
     def get_measurement(self) -> dict:
         """Polls the meter for measurements of pH, emf, and temperature.
@@ -114,7 +117,7 @@ class OrionStarA215(pHInterface):
         try:
             channel_values_raw = res_decoded.split('---')[1]
         except IndexError as e:
-            print(f"Invalid response from meter: {res_decoded}, Error: {e}")
+            logger.error(f"Invalid response from meter: {res_decoded}, Error: {e}")
 
         # Split the channel values and take pH, mV, and temp
         channel_values_list = channel_values_raw.split(',')

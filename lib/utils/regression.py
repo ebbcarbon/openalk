@@ -1,6 +1,9 @@
+import logging
 from typing import Tuple
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 def linear_regression(x: np.ndarray, y: np.ndarray) -> Tuple[np.float64,
                             np.float64, np.ndarray, np.ndarray, np.float64]:
