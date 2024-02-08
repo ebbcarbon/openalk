@@ -62,8 +62,16 @@ class App(tk.Tk):
         """
         self.title("Total Alkalinity")
 
-        # Ideally set geometry to something more general
-        self.geometry("1200x500")
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+
+        win_width = 1200
+        win_height = 540
+
+        posx = int((screen_width - win_width) / 2)
+        posy = int((screen_height - win_height) / 2)
+
+        self.geometry(f"{win_width}x{win_height}+{posx}+{posy}")
 
         self.option_add("*font", "Arial 13")
 
@@ -93,7 +101,10 @@ class App(tk.Tk):
         )
         self.total_alk_output = tk.Entry(self, width=10)
 
-        self.state_label = tk.Label(self,
+        self.status_title_label = tk.Label(self,
+            text="System Status:", pady=10
+        )
+        self.status_label = tk.Label(self,
             text="Ready", fg="green", pady=10
         )
 
@@ -137,8 +148,11 @@ class App(tk.Tk):
         self.acid_conc_label.grid(row=2, column=0, sticky="NSEW")
         self.acid_conc_input.grid(row=3, column=0)
 
-        self.total_alk_label.grid(row=0, column=5, sticky="NSEW")
-        self.total_alk_output.grid(row=1, column=5)
+        self.status_title_label.grid(row=0, column=5)
+        self.status_label.grid(row=1, column=5)
+
+        self.total_alk_label.grid(row=2, column=5, sticky="NSEW")
+        self.total_alk_output.grid(row=3, column=5)
         self.total_alk_output.configure(state=tk.DISABLED)
 
         self.start_button.grid(row=4, column=0)
@@ -153,9 +167,7 @@ class App(tk.Tk):
         self.empty_button.grid(row=4, column=3)
         self.wash_button.grid(row=4, column=4)
 
-        self.state_label.grid(row=6, column=0)
-
-        # General TkApp stuff
+        # Embed matplotlib object
         self.fig, self.ax = plt.subplots(figsize=(3.5, 3),
                                           constrained_layout=True)
         self.ax.set_xlabel("Volume Added (L)")
@@ -229,6 +241,27 @@ class App(tk.Tk):
         self.initial_mass_input.configure(state=tk.NORMAL)
         self.salinity_input.configure(state=tk.NORMAL)
         self.acid_conc_input.configure(state=tk.NORMAL)
+
+    def reset_interface(self) -> None:
+        """Resets all the interface elements at the end of a run.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        self.start_button.configure(state=tk.NORMAL)
+        self.initial_mass_input.configure(state=tk.NORMAL)
+        self.temperature_input.configure(state=tk.NORMAL)
+        self.salinity_input.configure(state=tk.NORMAL)
+
+        self.initial_mass_input.delete(0, tk.END)
+        self.temperature_input.delete(0, tk.END)
+        self.salinity_input.delete(0, tk.END)
+
+        self.ax.clear()
+        return
 
     def check_inputs(self) -> Tuple[bool, float, float, float]:
         """Checks if the user has provided all the necessary information
@@ -585,27 +618,6 @@ class App(tk.Tk):
         """
         self._stop_titration = True
         logger.info("Stopping titration before next step...")
-
-    def reset_interface(self) -> None:
-        """Resets all the interface elements at the end of a run.
-
-        Args:
-            None.
-
-        Returns:
-            None.
-        """
-        self.start_button.configure(state=tk.NORMAL)
-        self.initial_mass_input.configure(state=tk.NORMAL)
-        self.temperature_input.configure(state=tk.NORMAL)
-        self.salinity_input.configure(state=tk.NORMAL)
-
-        self.initial_mass_input.delete(0, tk.END)
-        self.temperature_input.delete(0, tk.END)
-        self.salinity_input.delete(0, tk.END)
-
-        self.ax.clear()
-        return
 
     def tksleep(self, time: float) -> None:
         """Tkinter-compatible emulation of time.sleep(seconds).
