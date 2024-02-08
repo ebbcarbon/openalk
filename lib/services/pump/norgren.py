@@ -95,18 +95,23 @@ class VersaPumpV6(PumpInterface):
         self.liters_per_step = (self.syringe_size_liters_calib /
                                     self.syringe_position_max)
 
+    def open_serial_port(self) -> bool:
         logger.info(f"Connecting to pump on port {self.serial_port_loc}...")
 
-        self.serial_port = serial.Serial(
-            port = self.serial_port_loc,
-            baudrate = self.baud_rate,
-            bytesize = serial.EIGHTBITS,
-            parity = serial.PARITY_NONE,
-            stopbits = serial.STOPBITS_ONE,
-            timeout = self.serial_timeout
-        )
-        if self.serial_port.is_open:
+        try:
+            self.serial_port = serial.Serial(
+                port = self.serial_port_loc,
+                baudrate = self.baud_rate,
+                bytesize = serial.EIGHTBITS,
+                parity = serial.PARITY_NONE,
+                stopbits = serial.STOPBITS_ONE,
+                timeout = self.serial_timeout
+            )
             logger.info(f"Pump serial port open: {self.serial_port}")
+            return True
+        except serial.SerialException as e:
+            logger.error(f"Connection failed with error: {e}")
+            return False
 
     def initialize_pump(self) -> dict:
         """Sends the serial command to initialize the pump.

@@ -21,8 +21,9 @@ logger = logging.getLogger(__name__)
 class SystemStates(Enum):
     """Enum values to be used with the self.system_state attribute.
     """
+    DISCONNECTED = auto()
     READY = auto()
-    PROCESSING = auto()
+    RUNNING = auto()
     STOPPING = auto()
 
 
@@ -105,7 +106,7 @@ class App(tk.Tk):
             text="System Status:", pady=10
         )
         self.status_label = tk.Label(self,
-            text="Ready", fg="green", pady=10
+            text="Disconnected", fg="red", pady=10
         )
 
         # Button definitions
@@ -132,6 +133,12 @@ class App(tk.Tk):
         )
         self.wash_button = tk.Button(self,
             text="Wash", padx=20, command=self.pump.wash
+        )
+        self.connect_devices_button = tk.Button(self,
+            text="Connect Devices", padx=20, command=self.connect_devices
+        )
+        self.instructions_button = tk.Button(self,
+            text="Instructions", padx=20, command=self.show_instructions
         )
 
         # Grid arrangement of input fields, buttons
@@ -166,6 +173,8 @@ class App(tk.Tk):
         self.fill_button.grid(row=4, column=2)
         self.empty_button.grid(row=4, column=3)
         self.wash_button.grid(row=4, column=4)
+        self.connect_devices_button.grid(row=6, column=2)
+        self.instructions_button.grid(row=7, column=0)
 
         # Embed matplotlib object
         self.fig, self.ax = plt.subplots(figsize=(3.5, 3),
@@ -177,6 +186,34 @@ class App(tk.Tk):
             row=0, column=2, rowspan=4, columnspan=3, sticky="NSEW"
         )
         self.canvas.draw()
+
+    def show_instructions(self) -> None:
+        msg = """
+            Testing the full page of instructions here:
+            1. Connect devices
+            2. Enter information on your sample into the input fields
+
+        """
+        tk.messagebox.showinfo("Instructions", msg)
+
+    def connect_devices(self) -> bool:
+        pump_serial = self.pump.open_serial_port()
+        ph_meter_serial = self.ph_meter.open_serial_port()
+        if pump_serial:
+            init_pump = self.pump.initialize_pump()
+
+        if pump_serial and ph_meter_serial and init_pump['host_ready']:
+            tk.messagebox.showinfo(
+                "Success", "Device connection successful."
+            )
+            self.system_state = SystemStates.READY
+            self.status_label.configure(text="Ready", fg="green")
+            return True
+        else:
+            tk.messagebox.showerror(
+                "Error", "Device connection failed."
+            )
+            return False
 
     def check_pump_ready(self) -> bool:
         """Checks if the pump module initializes properly. Called on startup.
@@ -388,6 +425,10 @@ class App(tk.Tk):
         Returns:
             None.
         """
+
+        if not self.system_state == SystemStates.READY:
+            pass
+
         self.disable_inputs()
         self.disable_manual_pump_controls()
         self.clear_outputs()
@@ -415,9 +456,9 @@ class App(tk.Tk):
         self.temperature_input.insert(0, temp_init)
         self.temperature_input.configure(state=tk.DISABLED)
 
-        self.system_state = SystemStates.PROCESSING
+        self.system_state = SystemStates.RUNNING
         self.stop_button.configure(state=tk.NORMAL)
-        self.state_label.configure(text="Titration started")
+        self.status_label.configure(text="Titration started")
 
         titration = gran.ModifiedGranTitration(
             sample_mass, salinity, acid_conc, temp_init, ph_init, emf_init
@@ -640,7 +681,7 @@ class App(tk.Tk):
         Returns:
             None.
         """
-        if self.system_state == SystemStates.PROCESSING:
+        if self.system_state == SystemStates.RUNNING:
             mb = tk.messagebox.askyesnocancel("Warning",
                 "Titration in progress, are you sure you want to quit?")
             if mb:
