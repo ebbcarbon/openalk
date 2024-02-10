@@ -66,8 +66,8 @@ class App(tk.Tk):
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
 
-        win_width = 1200
-        win_height = 540
+        win_width = screen_width
+        win_height = screen_height
 
         posx = int((screen_width - win_width) / 2)
         posy = int((screen_height - win_height) / 2)
@@ -76,45 +76,68 @@ class App(tk.Tk):
 
         self.option_add("*font", "Arial 13")
 
+        # Frame definition and titles
+        self.inputs_frame = tk.LabelFrame(self,
+            padx=10, pady=10, relief=tk.RIDGE, borderwidth=3,
+            text="Inputs"
+        )
+        self.main_controls_frame = tk.LabelFrame(self,
+            padx=20, pady=10, relief=tk.RIDGE, borderwidth=3,
+            text="Titration Controls"
+        )
+        self.display_frame = tk.LabelFrame(self,
+            padx=10, pady=10, relief=tk.RIDGE, borderwidth=3,
+            text="Display"
+        )
+        self.pump_controls_frame = tk.LabelFrame(self,
+            padx=20, pady=10, relief=tk.RIDGE, borderwidth=3,
+            text="Pump Controls"
+        )
+        self.outputs_frame = tk.LabelFrame(self,
+            padx=20, pady=20, relief=tk.RIDGE, borderwidth=3,
+            text="Outputs"
+        )
+        self.status_frame = tk.LabelFrame(self,
+            padx=0, pady=20, relief=tk.RIDGE, borderwidth=3,
+            text="System Status"
+        )
+
         # Input field definition and titles
-        self.initial_mass_label = tk.Label(self,
-            text="Insert sample mass (g): ", padx=20
+        self.initial_mass_label = tk.Label(self.inputs_frame,
+            text="Insert sample mass (g): ", padx=10
         )
-        self.initial_mass_input = tk.Entry(self, width=10)
+        self.initial_mass_input = tk.Entry(self.inputs_frame, width=10)
 
-        self.temperature_label = tk.Label(self,
-            text="Insert temperature (C): ", padx=20
+        self.temperature_label = tk.Label(self.inputs_frame,
+            text="Insert temperature (C): ", padx=10
         )
-        self.temperature_input = tk.Entry(self, width=10)
+        self.temperature_input = tk.Entry(self.inputs_frame, width=10)
 
-        self.salinity_label = tk.Label(self,
-            text="Insert sample salinity (S): ", padx=20
+        self.salinity_label = tk.Label(self.inputs_frame,
+            text="Insert sample salinity (S): ", padx=10, pady=10
         )
-        self.salinity_input = tk.Entry(self, width=10)
+        self.salinity_input = tk.Entry(self.inputs_frame, width=10)
 
-        self.acid_conc_label = tk.Label(self,
-            text="Insert titrant acid concentration (M): ", padx=20
+        self.acid_conc_label = tk.Label(self.inputs_frame,
+            text="Insert titrant acid concentration (M): ", padx=10, pady=10
         )
-        self.acid_conc_input = tk.Entry(self, width=10)
+        self.acid_conc_input = tk.Entry(self.inputs_frame, width=10)
 
-        self.total_alk_label = tk.Label(self,
+        self.total_alk_label = tk.Label(self.outputs_frame,
             text="Total Alkalinity (umol/kg): ", padx=20
         )
-        self.total_alk_output = tk.Entry(self, width=10)
+        self.total_alk_output = tk.Entry(self.outputs_frame, width=10)
 
-        self.status_title_label = tk.Label(self,
-            text="System Status:", pady=10
-        )
-        self.status_label = tk.Label(self,
+        self.status_label = tk.Label(self.status_frame,
             text="Disconnected", fg="red", pady=10
         )
 
         # Button definitions
-        self.start_button = tk.Button(self,
+        self.start_button = tk.Button(self.main_controls_frame, width=5,
             text="Start", bg="green", padx=20, command=self.start_titration
         )
-        self.stop_button = tk.Button(self,
-            text="Stop Titration", padx=10, command=self.stop_titration
+        self.stop_button = tk.Button(self.main_controls_frame, width=5,
+            text="Stop", padx=20, command=self.stop_titration
         )
         self.exit_button = tk.Button(self,
             text="Exit", bg="red", padx=20, command=self.quit_program
@@ -122,16 +145,16 @@ class App(tk.Tk):
         self.wm_exit_handler = self.protocol(
             "WM_DELETE_WINDOW", self.quit_program
         )
-        self.reset_button = tk.Button(self,
+        self.reset_button = tk.Button(self.main_controls_frame, width=5,
             text="Reset", padx=20, command=self.reset_interface
         )
-        self.fill_button = tk.Button(self,
+        self.fill_button = tk.Button(self.pump_controls_frame, width=5,
             text="Fill", padx=20, command=self.pump.fill
         )
-        self.empty_button = tk.Button(self,
+        self.empty_button = tk.Button(self.pump_controls_frame, width=5,
             text="Empty", padx=20, command=self.pump.empty
         )
-        self.wash_button = tk.Button(self,
+        self.wash_button = tk.Button(self.pump_controls_frame, width=5,
             text="Wash", padx=20, command=self.pump.wash
         )
         self.connect_devices_button = tk.Button(self,
@@ -155,35 +178,42 @@ class App(tk.Tk):
         self.acid_conc_label.grid(row=2, column=0, sticky="NSEW")
         self.acid_conc_input.grid(row=3, column=0)
 
-        self.status_title_label.grid(row=0, column=5)
-        self.status_label.grid(row=1, column=5)
+        self.status_frame.grid_rowconfigure(0, weight=1)
+        self.status_frame.grid_columnconfigure(0, weight=1)
+        self.status_label.grid(row=0, column=0, sticky="NSEW")
 
         self.total_alk_label.grid(row=2, column=5, sticky="NSEW")
         self.total_alk_output.grid(row=3, column=5)
         self.total_alk_output.configure(state=tk.DISABLED)
 
-        self.start_button.grid(row=4, column=0)
+        self.main_controls_frame.grid_columnconfigure(0, weight=1)
+        self.start_button.grid(row=0, column=0, pady=5)
+        self.stop_button.grid(row=1, column=0, pady=5)
+        self.reset_button.grid(row=2, column=0, pady=5)
+        # self.exit_button.grid(row=5, column=1)
 
-        self.stop_button.grid(row=4, column=1)
-        self.stop_button.configure(state=tk.DISABLED)
+        self.pump_controls_frame.grid_columnconfigure(0, weight=1)
+        self.fill_button.grid(row=0, column=0, pady=5)
+        self.empty_button.grid(row=1, column=0, pady=5)
+        self.wash_button.grid(row=2, column=0, pady=5)
+        # self.connect_devices_button.grid(row=6, column=2)
+        # self.instructions_button.grid(row=7, column=0)
 
-        self.reset_button.grid(row=5, column=0)
-        self.exit_button.grid(row=5, column=1)
-
-        self.fill_button.grid(row=4, column=2)
-        self.empty_button.grid(row=4, column=3)
-        self.wash_button.grid(row=4, column=4)
-        self.connect_devices_button.grid(row=6, column=2)
-        self.instructions_button.grid(row=7, column=0)
+        self.inputs_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=0)
+        self.main_controls_frame.grid(row=1, column=0, padx=10)
+        self.pump_controls_frame.grid(row=1, column=1, padx=10)
+        self.display_frame.grid(row=0, column=2, rowspan=2, padx=10, pady=20)
+        self.status_frame.grid(row=0, column=3, padx=10, pady=0, sticky="EW")
+        self.outputs_frame.grid(row=1, column=3, padx=10, pady=0)
 
         # Embed matplotlib object
-        self.fig, self.ax = plt.subplots(figsize=(3.5, 3),
+        self.fig, self.ax = plt.subplots(figsize=(4, 3),
                                           constrained_layout=True)
         self.ax.set_xlabel("Volume Added (L)")
         self.ax.set_ylabel("Emf (mV)")
-        self.canvas = FigureCanvasTkAgg(self.fig, self)
+        self.canvas = FigureCanvasTkAgg(self.fig, self.display_frame)
         self.canvas.get_tk_widget().grid(
-            row=0, column=2, rowspan=4, columnspan=3, sticky="NSEW"
+            row=0, column=0, rowspan=1, columnspan=1, sticky="NSEW"
         )
         self.canvas.draw()
 
@@ -681,11 +711,12 @@ class App(tk.Tk):
         Returns:
             None.
         """
+        msg = "Are you sure you want to quit?"
         if self.system_state == SystemStates.RUNNING:
-            mb = tk.messagebox.askyesnocancel("Warning",
-                "Titration in progress, are you sure you want to quit?")
-            if mb:
-                self.quit()
-            else:
-                return
-        self.quit()
+            msg = "   ***Titration in progress***\nAre you sure you want to quit?"
+
+        mb = tk.messagebox.askyesnocancel("Warning", msg)
+        if mb:
+            self.quit()
+        else:
+            return
