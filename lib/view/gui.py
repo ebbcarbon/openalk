@@ -208,6 +208,14 @@ class App(tk.Tk):
         self.canvas.draw()
 
     def connect_devices(self) -> bool:
+        """Opens serial connections to the pump and pH meter.
+
+        Args:
+            None.
+
+        Returns:
+            bool: True if all connections are successful, False otherwise.
+        """
         pump_serial = self.pump.open_serial_port()
         if not pump_serial:
             tk.messagebox.showerror(
@@ -621,7 +629,14 @@ class App(tk.Tk):
         self.plot(titration.volume_array, titration.emf_array)
 
     def finish_titration(self, titration: gran.ModifiedGranTitration) -> None:
-        """
+        """Handles the calculations, writes data, and cleans up after the
+        titration is finished.
+
+        Args:
+            titration (ModifiedGranTitration): gran titration object.
+
+        Returns:
+            None.
         """
         self.after_cancel(self.auto_titration)
 
@@ -641,7 +656,14 @@ class App(tk.Tk):
         )
 
     def handle_stop_command(self, func: Callable) -> None:
-        """
+        """Handles the stop command when requested in the middle of a run.
+
+        Args:
+            func (Callable): the titration function to cancel. Should be either
+                self.initial_titration or self.auto_titration.
+
+        Returns:
+            None.
         """
         self.after_cancel(func)
         logger.info("Titration cancelled.")
