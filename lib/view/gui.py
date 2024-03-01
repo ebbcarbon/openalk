@@ -50,7 +50,7 @@ class App(tk.Tk):
 
         self.build_UI()
 
-        self.system_state = SystemStates.READY
+        self.system_state = SystemStates.DISCONNECTED
 
     def build_UI(self) -> None:
         """Draws the main UI window before starting.
@@ -139,9 +139,6 @@ class App(tk.Tk):
         self.stop_button = tk.Button(self.main_controls_frame, width=5,
             text="Stop", padx=20, command=self.stop_titration
         )
-        self.exit_button = tk.Button(self,
-            text="Exit", bg="red", padx=20, command=self.quit_program
-        )
         self.wm_exit_handler = self.protocol(
             "WM_DELETE_WINDOW", self.quit_program
         )
@@ -159,9 +156,6 @@ class App(tk.Tk):
         )
         self.connect_devices_button = tk.Button(self,
             text="Connect Devices", padx=20, command=self.connect_devices
-        )
-        self.instructions_button = tk.Button(self,
-            text="Instructions", padx=20, command=self.show_instructions
         )
 
         # Grid arrangement of input fields, buttons
@@ -190,14 +184,12 @@ class App(tk.Tk):
         self.start_button.grid(row=0, column=0, pady=5)
         self.stop_button.grid(row=1, column=0, pady=5)
         self.reset_button.grid(row=2, column=0, pady=5)
-        # self.exit_button.grid(row=5, column=1)
 
         self.pump_controls_frame.grid_columnconfigure(0, weight=1)
         self.fill_button.grid(row=0, column=0, pady=5)
         self.empty_button.grid(row=1, column=0, pady=5)
         self.wash_button.grid(row=2, column=0, pady=5)
-        # self.connect_devices_button.grid(row=6, column=2)
-        # self.instructions_button.grid(row=7, column=0)
+        self.connect_devices_button.grid(row=6, column=2)
 
         self.inputs_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=0)
         self.main_controls_frame.grid(row=1, column=0, padx=10)
@@ -217,33 +209,34 @@ class App(tk.Tk):
         )
         self.canvas.draw()
 
-    def show_instructions(self) -> None:
-        msg = """
-            Testing the full page of instructions here:
-            1. Connect devices
-            2. Enter information on your sample into the input fields
-
-        """
-        tk.messagebox.showinfo("Instructions", msg)
-
     def connect_devices(self) -> bool:
         pump_serial = self.pump.open_serial_port()
-        ph_meter_serial = self.ph_meter.open_serial_port()
-        if pump_serial:
-            init_pump = self.pump.initialize_pump()
-
-        if pump_serial and ph_meter_serial and init_pump['host_ready']:
-            tk.messagebox.showinfo(
-                "Success", "Device connection successful."
-            )
-            self.system_state = SystemStates.READY
-            self.status_label.configure(text="Ready", fg="green")
-            return True
-        else:
+        if not pump_serial:
             tk.messagebox.showerror(
-                "Error", "Device connection failed."
+                "Error", "Pump serial connection failed."
             )
             return False
+
+        pump_init = self.pump.initialize_pump()
+        if not pump_init['host_ready']:
+            tk.messagebox.showerror(
+                "Error", "Pump initialization failed."
+            )
+            return False
+
+        ph_meter_serial = self.ph_meter.open_serial_port()
+        if not ph_meter_serial:
+            tk.messagebox.showerror(
+                "Error", "pH meter serial connection failed."
+            )
+            return False
+
+        self.system_state = SystemStates.READY
+        self.status_label.configure(text="Ready", fg="green")
+        tk.messagebox.showinfo(
+            "Success", "Device connection successful."
+        )
+        return True
 
     def check_pump_ready(self) -> bool:
         """Checks if the pump module initializes properly. Called on startup.
@@ -289,12 +282,11 @@ class App(tk.Tk):
         Returns:
             None.
         """
-        self.start_button.configure(state=tk.DISABLED)
         self.initial_mass_input.configure(state=tk.DISABLED)
         self.salinity_input.configure(state=tk.DISABLED)
         self.acid_conc_input.configure(state=tk.DISABLED)
 
-    def reset_inputs(self) -> None:
+    def enable_inputs(self) -> None:
         """Helper function to re-enable all UI inputs at once after
         a run has ended.
 
@@ -304,7 +296,6 @@ class App(tk.Tk):
         Returns:
             None.
         """
-        self.start_button.configure(state=tk.NORMAL)
         self.initial_mass_input.configure(state=tk.NORMAL)
         self.salinity_input.configure(state=tk.NORMAL)
         self.acid_conc_input.configure(state=tk.NORMAL)
@@ -318,17 +309,10 @@ class App(tk.Tk):
         Returns:
             None.
         """
-        self.start_button.configure(state=tk.NORMAL)
-        self.initial_mass_input.configure(state=tk.NORMAL)
-        self.temperature_input.configure(state=tk.NORMAL)
-        self.salinity_input.configure(state=tk.NORMAL)
-
-        self.initial_mass_input.delete(0, tk.END)
-        self.temperature_input.delete(0, tk.END)
-        self.salinity_input.delete(0, tk.END)
-
+        self.enable_inputs()
+        self.clear_inputs()
+        self.enable_manual_controls()
         self.ax.clear()
-        return
 
     def check_inputs(self) -> Tuple[bool, float, float, float]:
         """Checks if the user has provided all the necessary information
@@ -344,31 +328,42 @@ class App(tk.Tk):
              - float: user-provided salinity casted to float.
              - float: user-provided acid concentration casted to float.
         """
-        sample_mass = self.initial_mass_input.get()
-        salinity = self.salinity_input.get()
-        acid_conc = self.acid_conc_input.get()
+        sample_mass_input_value = self.initial_mass_input.get()
+        salinity_input_value = self.salinity_input.get()
+        acid_conc_input_value = self.acid_conc_input.get()
 
-        valid = True
-        if not sample_mass:
+        inputs_valid = True
+        try:
+            sample_mass = float(sample_mass_input_value)
+        except ValueError:
             tk.messagebox.showerror(
-                "Error", "Please provide sample mass."
+                "Error", "Please provide a valid value for sample mass."
             )
-            valid = False
-        if not salinity:
-            tk.messagebox.showerror(
-                "Error", "Please provide sample salinity."
-            )
-            valid = False
-        if not acid_conc:
-            tk.messagebox.showerror(
-                "Error", "Please provide acid concentration."
-            )
-            valid = False
+            inputs_valid = False
 
-        return valid, float(sample_mass), float(salinity), float(acid_conc)
+        try:
+            salinity = float(salinity_input_value)
+        except ValueError:
+            tk.messagebox.showerror(
+                "Error", "Please provide a valid value for salinity."
+            )
+            inputs_valid = False
 
-    def disable_manual_pump_controls(self) -> None:
-        """Helper function to disable all pump controls at the beginning
+        try:
+            acid_conc = float(acid_conc_input_value)
+        except ValueError:
+            tk.messagebox.showerror(
+                "Error", "Please provide a valid value for acid concentration."
+            )
+            inputs_valid = False
+
+        if not inputs_valid:
+            return inputs_valid, 0, 0, 0
+
+        return inputs_valid, sample_mass, salinity, acid_conc
+
+    def disable_manual_controls(self) -> None:
+        """Helper function to disable all manual controls at the beginning
         of a run.
 
         Args:
@@ -377,12 +372,14 @@ class App(tk.Tk):
         Returns:
             None.
         """
+        self.start_button.configure(state=tk.DISABLED)
         self.fill_button.configure(state=tk.DISABLED)
         self.empty_button.configure(state=tk.DISABLED)
         self.wash_button.configure(state=tk.DISABLED)
+        self.connect_devices_button.configure(state=tk.DISABLED)
 
-    def reset_manual_pump_controls(self) -> None:
-        """Helper function to re-enable all pump controls at the end of a run.
+    def enable_manual_controls(self) -> None:
+        """Helper function to re-enable all manual controls at the end of a run.
 
         Args:
             None.
@@ -390,9 +387,28 @@ class App(tk.Tk):
         Returns:
             None.
         """
+        self.start_button.configure(state=tk.NORMAL)
         self.fill_button.configure(state=tk.NORMAL)
         self.empty_button.configure(state=tk.NORMAL)
         self.wash_button.configure(state=tk.NORMAL)
+        self.connect_devices_button.configure(state=tk.NORMAL)
+
+    def clear_inputs(self) -> None:
+        """Helper function to clear UI inputs before the next run.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        self.initial_mass_input.delete(0, tk.END)
+        self.salinity_input.delete(0, tk.END)
+        self.acid_conc_input.delete(0, tk.END)
+
+        self.temperature_input.configure(state=tk.NORMAL)
+        self.temperature_input.delete(0, tk.END)
+        self.temperature_input.configure(state=tk.DISABLED)
 
     def clear_outputs(self) -> None:
         """Helper function to clear UI outputs before the next run.
@@ -456,43 +472,41 @@ class App(tk.Tk):
             None.
         """
 
-        if not self.system_state == SystemStates.READY:
-            pass
+        if self.system_state == SystemStates.DISCONNECTED:
+            tk.messagebox.showerror(
+                "Error", "Please connect devices before starting."
+            )
+            return
 
         self.disable_inputs()
-        self.disable_manual_pump_controls()
+        self.disable_manual_controls()
         self.clear_outputs()
 
         inputs_valid, sample_mass, salinity, acid_conc = self.check_inputs()
 
         if not inputs_valid:
-            self.reset_inputs()
-            self.reset_manual_pump_controls()
+            self.enable_inputs()
+            self.enable_manual_controls()
             return
 
-        if not self.check_pump_ready():
-            self.reset_inputs()
-            self.reset_manual_pump_controls()
-            return
-
-        if not self.check_ph_meter_ready():
-            self.reset_inputs()
-            self.reset_manual_pump_controls()
-            return
+        self.status_label.configure(text="Waiting for pH measurement...")
+        # For some unknown reason, unless there's a small sleep here
+        # tk will go immediately to the ph measurement without updating the UI
+        self.tksleep(1)
 
         ph_init, emf_init, temp_init = self.get_phmeter_measurements()
+
+        self.status_label.configure(text="Titration in progress")
 
         self.temperature_input.configure(state=tk.NORMAL)
         self.temperature_input.insert(0, temp_init)
         self.temperature_input.configure(state=tk.DISABLED)
 
-        self.system_state = SystemStates.RUNNING
-        self.stop_button.configure(state=tk.NORMAL)
-        self.status_label.configure(text="Titration started")
-
         titration = gran.ModifiedGranTitration(
             sample_mass, salinity, acid_conc, temp_init, ph_init, emf_init
         )
+
+        self.system_state = SystemStates.RUNNING
 
         logger.info("Filling syringe...")
         self.pump.fill()
@@ -511,12 +525,18 @@ class App(tk.Tk):
             None.
         """
         # Stopping logic. Need to think of a better way to do this.
-        # Need to reset interface after this is triggered
-        # Where does the syringe empty to in this case?
         if self._stop_titration:
             self.after_cancel(self.initial_titration)
             logger.info("Titration cancelled.")
             self._stop_titration = False
+
+            self.reset_interface()
+            self.system_state = SystemStates.READY
+            self.status_label.configure(text="Ready", fg="green")
+
+            tk.messagebox.showinfo(
+                "Info", "Titration cancelled."
+            )
             return
 
         last_ph = titration.get_last_ph()
@@ -551,6 +571,14 @@ class App(tk.Tk):
             self.after_cancel(self.auto_titration)
             logger.info("Titration cancelled.")
             self._stop_titration = False
+
+            self.reset_interface()
+            self.system_state = SystemStates.READY
+            self.status_label.configure(text="Ready", fg="green")
+
+            tk.messagebox.showinfo(
+                "Info", "Titration cancelled."
+            )
             return
 
         last_ph = titration.get_last_ph()
@@ -603,13 +631,19 @@ class App(tk.Tk):
         # Dispense required volume of acid
         logger.info(f"Dispensing: {required_acid_vol_ul} uL")
         self.pump.dispense(required_acid_vol_liters)
+        self.status_label.configure(text="Dosing...")
 
         # Wait 5 seconds to dispense acid
         self.tksleep(5)
 
+        self.status_label.configure(text="Waiting for pH measurement...")
+        self.tksleep(1)
+
         # Take pH, emf measurements -- this call is blocking
         pH, emf, _ = self.get_phmeter_measurements()
         logger.info(f"pH: {pH}, emf: {emf}")
+
+        self.status_label.configure(text="Titration in progress")
 
         # Add last measurements to titration
         titration.add_step_data(pH, emf, required_acid_vol_liters)
@@ -687,8 +721,13 @@ class App(tk.Tk):
         Returns:
             None.
         """
+        if not self.system_state == SystemStates.RUNNING:
+            return
+
         self._stop_titration = True
         logger.info("Stopping titration before next step...")
+        self.system_state = SystemStates.STOPPING
+        self.status_label.configure(text="Stopping...", fg="red")
 
     def tksleep(self, time: float) -> None:
         """Tkinter-compatible emulation of time.sleep(seconds).
