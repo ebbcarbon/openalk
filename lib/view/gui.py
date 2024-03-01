@@ -4,7 +4,7 @@ import logging
 import tkinter as tk
 from datetime import datetime
 from enum import Enum, auto
-from typing import Tuple
+from typing import Tuple, Callable
 
 # Third-party libraries
 import numpy as np
@@ -19,7 +19,7 @@ from lib.services.titration import gran
 logger = logging.getLogger(__name__)
 
 class SystemStates(Enum):
-    """Enum values to be used with the self.system_state attribute.
+    """Enum values to be used with the self._system_state attribute.
     """
     DISCONNECTED = auto()
     READY = auto()
@@ -43,14 +43,12 @@ class App(tk.Tk):
 
         self.ph_meter = orion_star.OrionStarA215()
 
-        self.system_state = None
-
         self._sleep_var = tk.IntVar(self)
         self._stop_titration = False
 
         self.build_UI()
 
-        self.system_state = SystemStates.DISCONNECTED
+        self._system_state = SystemStates.DISCONNECTED
 
     def build_UI(self) -> None:
         """Draws the main UI window before starting.
@@ -231,7 +229,7 @@ class App(tk.Tk):
             )
             return False
 
-        self.system_state = SystemStates.READY
+        self._system_state = SystemStates.READY
         self.status_label.configure(text="Ready", fg="green")
         tk.messagebox.showinfo(
             "Success", "Device connection successful."
@@ -472,7 +470,7 @@ class App(tk.Tk):
             None.
         """
 
-        if self.system_state == SystemStates.DISCONNECTED:
+        if self._system_state == SystemStates.DISCONNECTED:
             tk.messagebox.showerror(
                 "Error", "Please connect devices before starting."
             )
@@ -506,7 +504,7 @@ class App(tk.Tk):
             sample_mass, salinity, acid_conc, temp_init, ph_init, emf_init
         )
 
-        self.system_state = SystemStates.RUNNING
+        self._system_state = SystemStates.RUNNING
 
         logger.info("Filling syringe...")
         self.pump.fill()
@@ -524,19 +522,8 @@ class App(tk.Tk):
         Returns:
             None.
         """
-        # Stopping logic. Need to think of a better way to do this.
         if self._stop_titration:
-            self.after_cancel(self.initial_titration)
-            logger.info("Titration cancelled.")
-            self._stop_titration = False
-
-            self.reset_interface()
-            self.system_state = SystemStates.READY
-            self.status_label.configure(text="Ready", fg="green")
-
-            tk.messagebox.showinfo(
-                "Info", "Titration cancelled."
-            )
+            self.handle_stop_command(self.initial_titration)
             return
 
         last_ph = titration.get_last_ph()
@@ -566,36 +553,18 @@ class App(tk.Tk):
         Returns:
             None.
         """
-        # Stopping logic. Need to think of a better way to do this.
         if self._stop_titration:
-            self.after_cancel(self.auto_titration)
-            logger.info("Titration cancelled.")
-            self._stop_titration = False
-
-            self.reset_interface()
-            self.system_state = SystemStates.READY
-            self.status_label.configure(text="Ready", fg="green")
-
-            tk.messagebox.showinfo(
-                "Info", "Titration cancelled."
-            )
+            self.handle_stop_command(self.auto_titration)
             return
 
         last_ph = titration.get_last_ph()
 
-        if last_ph < 3 or len(titration.ph_array) > 25:
-            self.after_cancel(self.auto_titration)
+        # Check if last pH reading is below 3.0, if so stop the routine
+        # and run calculations
+        if last_ph < 3:
+            logger.info("Titration finished.")
             logger.info(f"Final pH: {last_ph}")
-
-            total_alkalinity, gamma, rsq = titration.gran_polynomial_fit()
-            logger.info(f"TA: {total_alkalinity}, Gamma: {gamma}, Rsq: {rsq}")
-
-            self.update_ta_output(total_alkalinity)
-
-            self.write_data(titration, total_alkalinity)
-
-            """There was originally a call to reset everything here"""
-            # self.reset()
+            self.finish_titration(titration)
             return
 
         ph_target = last_ph - 0.1
@@ -650,6 +619,41 @@ class App(tk.Tk):
 
         # Plot current step
         self.plot(titration.volume_array, titration.emf_array)
+
+    def finish_titration(self, titration: gran.ModifiedGranTitration) -> None:
+        """
+        """
+        self.after_cancel(self.auto_titration)
+
+        total_alkalinity, gamma, rsq = titration.gran_polynomial_fit()
+        logger.info(f"TA: {total_alkalinity}, Gamma: {gamma}, Rsq: {rsq}")
+
+        self.update_ta_output(total_alkalinity)
+
+        self.write_data(titration, total_alkalinity)
+
+        self.reset_interface()
+        self._system_state = SystemStates.READY
+        self.status_label.configure(text="Ready", fg="green")
+
+        tk.messagebox.showinfo(
+            "Info", "Titration finished."
+        )
+
+    def handle_stop_command(self, func: Callable) -> None:
+        """
+        """
+        self.after_cancel(func)
+        logger.info("Titration cancelled.")
+        self._stop_titration = False
+
+        self.reset_interface()
+        self._system_state = SystemStates.READY
+        self.status_label.configure(text="Ready", fg="green")
+
+        tk.messagebox.showinfo(
+            "Info", "Titration cancelled."
+        )
 
     def plot(self, x: np.ndarray, y: np.ndarray) -> None:
         """Displays the updated titration data on the UI after each step.
@@ -721,12 +725,12 @@ class App(tk.Tk):
         Returns:
             None.
         """
-        if not self.system_state == SystemStates.RUNNING:
+        if not self._system_state == SystemStates.RUNNING:
             return
 
         self._stop_titration = True
         logger.info("Stopping titration before next step...")
-        self.system_state = SystemStates.STOPPING
+        self._system_state = SystemStates.STOPPING
         self.status_label.configure(text="Stopping...", fg="red")
 
     def tksleep(self, time: float) -> None:
@@ -751,7 +755,7 @@ class App(tk.Tk):
             None.
         """
         msg = "Are you sure you want to quit?"
-        if self.system_state == SystemStates.RUNNING:
+        if self._system_state == SystemStates.RUNNING:
             msg = "   ***Titration in progress***\nAre you sure you want to quit?"
 
         mb = tk.messagebox.askyesnocancel("Warning", msg)
