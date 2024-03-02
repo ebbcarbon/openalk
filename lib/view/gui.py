@@ -306,6 +306,20 @@ class App(tk.Tk):
         self.salinity_input.configure(state=tk.NORMAL)
         self.acid_conc_input.configure(state=tk.NORMAL)
 
+    def clear_display(self) -> None:
+        """Clears the display data from the last run.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        self.ax.clear()
+        self.ax.set_xlabel("Volume Added (L)")
+        self.ax.set_ylabel("Emf (mV)")
+        self.canvas.draw()
+
     def reset_interface(self) -> None:
         """Resets all the interface elements at the end of a run.
 
@@ -318,7 +332,7 @@ class App(tk.Tk):
         self.enable_inputs()
         self.clear_inputs()
         self.enable_manual_controls()
-        self.ax.cla()
+        self.clear_display()
 
     def check_inputs(self) -> Tuple[bool, float, float, float]:
         """Checks if the user has provided all the necessary information
@@ -688,11 +702,6 @@ class App(tk.Tk):
             self.ax.autoscale()
             self.canvas.draw()
 
-    """
-    TODO: Bad writer logic. Header should be something like:
-    time, titration_step, sample_mass_g, temp_C, salinity, emf_mV,
-    volume_added_L, pH, total_alkalinity_umol_kg
-    """
     def write_data(self, titration: gran.ModifiedGranTitration,
                       total_alkalinity: float) -> None:
         """Dumps the titration data to a csv file on the host.
@@ -706,32 +715,23 @@ class App(tk.Tk):
         """
         filename = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
 
+        header = ["total_volume_added_L", "emf_mV", "pH", "sample_mass_g",
+                  "temp_C", "salinity", "acid_conc_M", "total_alk_umol_kg"]
+
         with open(filename + ".csv", "w") as f:
             writer = csv.writer(f, delimiter=",")
-            writer.writerow(
-                ["Sample Size (g):"] + [str(titration.sample_mass_kg * 1000)]
-            )
-            writer.writerow(
-                ["Temperature (C):"] + [str(titration.temp_K - 273.15)]
-            )
-            writer.writerow(
-                ["Salinity:"] + [str(titration.salinity)]
-            )
-            writer.writerow(
-                ["Acid Concentration (M):"] + [str(titration.acid_conc_M)]
-            )
-            writer.writerow(
-                ["Emf:"] + [",".join(titration.emf_array.astype(str))]
-            )
-            writer.writerow(
-                ["Volume Added:"] + [",".join(titration.volume_array.astype(str))]
-            )
-            writer.writerow(
-                ["pH:"] + [",".join(titration.ph_array.astype(str))]
-            )
-            writer.writerow(
-                ["Total Alkalinity:"] + [str(total_alkalinity)]
-            )
+            writer.writerow(header)
+
+            firstrow = [titration.volume_array[0], titration.emf_array[0],
+                titration.ph_array[0], titration.sample_mass_kg * 1000,
+                titration.temp_K - 273.15, titration.salinity,
+                titration.acid_conc_M, round(total_alkalinity, 3)]
+            writer.writerow(firstrow)
+
+            for vol,emf,ph in zip(titration.volume_array[1:],
+                    titration.emf_array[1:], titration.ph_array[1:]):
+                rowarray = [vol, emf, ph]
+                writer.writerow(rowarray)
 
     def stop_titration(self) -> None:
         """Gives the signal to stop the titration process in the middle
