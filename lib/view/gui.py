@@ -124,7 +124,8 @@ class App(tk.Tk):
         self.total_alk_label = tk.Label(self.outputs_frame,
             text="Total Alkalinity (umol/kg): ", padx=20
         )
-        self.total_alk_output = tk.Entry(self.outputs_frame, width=10)
+        self.total_alk_output = tk.Label(self.outputs_frame,
+            text="N/A", padx=20)
 
         self.status_label = tk.Label(self.status_frame,
             text="Disconnected", fg="red", pady=10
@@ -176,7 +177,6 @@ class App(tk.Tk):
 
         self.total_alk_label.grid(row=2, column=5, sticky="NSEW")
         self.total_alk_output.grid(row=3, column=5)
-        self.total_alk_output.configure(state=tk.DISABLED)
 
         self.main_controls_frame.grid_columnconfigure(0, weight=1)
         self.start_button.grid(row=0, column=0, pady=5)
@@ -318,7 +318,7 @@ class App(tk.Tk):
         self.enable_inputs()
         self.clear_inputs()
         self.enable_manual_controls()
-        self.ax.clear()
+        self.ax.cla()
 
     def check_inputs(self) -> Tuple[bool, float, float, float]:
         """Checks if the user has provided all the necessary information
@@ -425,9 +425,7 @@ class App(tk.Tk):
         Returns:
             None.
         """
-        self.total_alk_output.configure(state=tk.NORMAL)
-        self.total_alk_output.delete(0, tk.END)
-        self.total_alk_output.configure(state=tk.DISABLED)
+        self.total_alk_output.configure(text="N/A")
 
     def update_ta_output(self, value: float) -> None:
         """Updates the total alkalinity reading at the end of a run.
@@ -439,9 +437,7 @@ class App(tk.Tk):
         Returns:
             None.
         """
-        self.total_alk_output.configure(state=tk.NORMAL)
-        self.total_alk_output.insert(0, str(value))
-        self.total_alk_output.configure(state=tk.DISABLED)
+        self.total_alk_output.configure(text=str(round(value, 3)))
 
     def get_phmeter_measurements(self) -> Tuple[float, float, float]:
         """Polls the pH meter for the current measurements of pH, emf,
