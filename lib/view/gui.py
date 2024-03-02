@@ -580,6 +580,7 @@ class App(tk.Tk):
         # Check if last pH reading is below 3.0, if so stop the routine
         # and run calculations
         if last_ph < 3:
+            self.status_label.configure(text="Finished", fg="green")
             logger.info("Titration finished.")
             logger.info(f"Final pH: {last_ph}")
             self.finish_titration(titration)
@@ -658,12 +659,12 @@ class App(tk.Tk):
         self.write_data(titration, total_alkalinity)
 
         self.reset_interface()
-        self._system_state = SystemStates.READY
-        self.status_label.configure(text="Ready", fg="green")
 
         tk.messagebox.showinfo(
             "Info", "Titration finished."
         )
+        self._system_state = SystemStates.READY
+        self.status_label.configure(text="Ready", fg="green")
 
     def handle_stop_command(self, func: Callable) -> None:
         """Handles the stop command when requested in the middle of a run.
