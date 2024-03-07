@@ -46,18 +46,23 @@ class OrionStarA215(pHInterface):
         # Meter protocol uses > as the end-of-response character
         self.end_response_char = b'\r>'
 
+    def open_serial_port(self) -> bool:
         logger.info(f"Connecting to pH meter on port {self.serial_port_loc}...")
 
-        self.serial_port = serial.Serial(
-            port = self.serial_port_loc,
-            baudrate = self.baud_rate,
-            bytesize = serial.EIGHTBITS,
-            parity = serial.PARITY_NONE,
-            stopbits = serial.STOPBITS_ONE,
-            timeout = self.serial_timeout
-        )
-        if self.serial_port.is_open:
+        try:
+            self.serial_port = serial.Serial(
+                port = self.serial_port_loc,
+                baudrate = self.baud_rate,
+                bytesize = serial.EIGHTBITS,
+                parity = serial.PARITY_NONE,
+                stopbits = serial.STOPBITS_ONE,
+                timeout = self.serial_timeout
+            )
             logger.info(f"pH meter serial port open: {self.serial_port}")
+            return True
+        except serial.SerialException as e:
+            logger.error(f"Connection failed with error: {e}")
+            return False
 
     def get_measurement(self) -> dict:
         """Polls the meter for measurements of pH, emf, and temperature.
