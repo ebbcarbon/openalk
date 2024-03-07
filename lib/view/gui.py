@@ -18,6 +18,9 @@ from lib.services.titration import gran
 
 logger = logging.getLogger(__name__)
 
+FIRST_TITRATION_PH_TARGET = 3.8
+SECOND_TITRATION_PH_TARGET = 3.0
+
 class SystemStates(Enum):
     """Enum values to be used with the self._system_state attribute.
     """
@@ -546,16 +549,17 @@ class App(tk.Tk):
 
         last_ph = titration.get_last_ph()
 
-        # Check if last pH reading is below 3.8, if so move to next step
-        if last_ph < 3.8:
+        # Check if last pH reading is below target, if so move to next step
+        if last_ph < FIRST_TITRATION_PH_TARGET:
             self.after_cancel(self.initial_titration)
             logger.info("Reached pH target. Moving to second titration step...")
             self.auto_titration(titration)
             return
 
-        ph_target = 3.79
+        # Shoot for slightly below target to make sure target is reached
+        stepwise_ph_target = FIRST_TITRATION_PH_TARGET - 0.01
 
-        self.run_titration_step(titration, ph_target)
+        self.run_titration_step(titration, stepwise_ph_target)
 
         # Schedule next titration step, setting time=0 makes it run
         # immediately whenever the mainloop is not busy
@@ -577,18 +581,19 @@ class App(tk.Tk):
 
         last_ph = titration.get_last_ph()
 
-        # Check if last pH reading is below 3.0, if so stop the routine
+        # Check if last pH reading is below target, if so stop the routine
         # and run calculations
-        if last_ph < 3:
+        if last_ph < SECOND_TITRATION_PH_TARGET:
             self.status_label.configure(text="Finished", fg="green")
             logger.info("Titration finished.")
             logger.info(f"Final pH: {last_ph}")
             self.finish_titration(titration)
             return
 
-        ph_target = last_ph - 0.1
+        # Collect data moving downward in steps of 0.1 pH
+        stepwise_ph_target = last_ph - 0.1
 
-        self.run_titration_step(titration, ph_target)
+        self.run_titration_step(titration, stepwise_ph_target)
 
         # Schedule next titration step, setting time=0 makes it run
         # immediately whenever the mainloop is not busy
