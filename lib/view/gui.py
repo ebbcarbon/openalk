@@ -335,7 +335,6 @@ class App(tk.Tk):
         self.enable_inputs()
         self.clear_inputs()
         self.enable_manual_controls()
-        self.clear_display()
 
     def check_inputs(self) -> Tuple[bool, float, float, float]:
         """Checks if the user has provided all the necessary information
@@ -472,6 +471,7 @@ class App(tk.Tk):
         try:
             meas = self.ph_meter.get_measurement()
         except IndexError as e:
+            logger.info("pH measurement failed, trying again...")
             meas = self.ph_meter.get_measurement()
 
         ph_meas = meas["pH"]
@@ -499,6 +499,7 @@ class App(tk.Tk):
 
         self.disable_inputs()
         self.disable_manual_controls()
+        self.clear_display()
         self.clear_outputs()
 
         inputs_valid, sample_mass, salinity, acid_conc = self.check_inputs()
