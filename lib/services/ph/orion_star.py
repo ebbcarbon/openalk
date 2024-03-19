@@ -123,6 +123,7 @@ class OrionStarA215(pHInterface):
             channel_values_raw = res_decoded.split('---')[1]
         except IndexError as e:
             logger.error(f"Invalid response from meter: {res_decoded}, Error: {e}")
+            raise
 
         # Split the channel values and take pH, mV, and temp
         channel_values_list = channel_values_raw.split(',')
