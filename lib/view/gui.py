@@ -1,6 +1,7 @@
 # Standard libraries
 import csv
 import logging
+import platform
 import tkinter as tk
 from datetime import datetime
 from enum import Enum, auto
@@ -219,6 +220,16 @@ class App(tk.Tk):
         Returns:
             bool: True if all connections are successful, False otherwise.
         """
+        # Serial ports on Windows are exclusive, such that even if the
+        # connection fails, you get a permission error when you attempt
+        # to reconnect unless you close it first.
+        if platform.system() == "Windows":
+            try:
+                self.pump.serial_port.close()
+                self.ph_meter.serial_port.close()
+            except AttributeError:
+                pass
+        
         pump_serial = self.pump.open_serial_port()
         if not pump_serial:
             tk.messagebox.showerror(
