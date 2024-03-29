@@ -103,6 +103,10 @@ class App(tk.Tk):
             padx=0, pady=20, relief=tk.RIDGE, borderwidth=3,
             text="System Status"
         )
+        self.serial_ports_frame = tk.LabelFrame(self,
+            padx=10, pady=10, relief=tk.RIDGE, borderwidth=3,
+            text="Serial Ports"
+        )
 
         # Input field definition and titles
         self.initial_mass_label = tk.Label(self.inputs_frame,
@@ -135,6 +139,17 @@ class App(tk.Tk):
             text="Disconnected", fg="red", pady=10
         )
 
+        self.phmeter_port_label = tk.Label(self.serial_ports_frame,
+            text="pH meter serial port: ", padx=10, pady=10
+        )
+        self.phmeter_port_input = tk.Entry(self.serial_ports_frame, width=15)
+
+        self.pump_port_label = tk.Label(self.serial_ports_frame,
+            text="Pump serial port: ", padx=10, pady=10
+        )
+        self.pump_port_input = tk.Entry(self.serial_ports_frame, width=15)
+
+
         # Button definitions
         self.start_button = tk.Button(self.main_controls_frame, width=5,
             text="Start", bg="green", padx=20, command=self.start_titration
@@ -149,15 +164,15 @@ class App(tk.Tk):
             text="Reset", padx=20, command=self.reset_interface
         )
         self.fill_button = tk.Button(self.pump_controls_frame, width=5,
-            text="Fill", padx=20, command=self.pump.fill
+            text="Fill", padx=20, command=self.handle_manual_fill_command
         )
         self.empty_button = tk.Button(self.pump_controls_frame, width=5,
-            text="Empty", padx=20, command=self.pump.empty
+            text="Empty", padx=20, command=self.handle_manual_empty_command
         )
         self.wash_button = tk.Button(self.pump_controls_frame, width=5,
-            text="Wash", padx=20, command=self.pump.wash
+            text="Wash", padx=20, command=self.handle_manual_wash_command
         )
-        self.connect_devices_button = tk.Button(self,
+        self.connect_devices_button = tk.Button(self.serial_ports_frame,
             text="Connect Devices", padx=20, command=self.connect_devices
         )
 
@@ -191,7 +206,13 @@ class App(tk.Tk):
         self.fill_button.grid(row=0, column=0, pady=5)
         self.empty_button.grid(row=1, column=0, pady=5)
         self.wash_button.grid(row=2, column=0, pady=5)
-        self.connect_devices_button.grid(row=6, column=2)
+
+        self.serial_ports_frame.grid_columnconfigure(0, weight=1)
+        self.phmeter_port_label.grid(row=0, column=0, sticky="NSEW")
+        self.phmeter_port_input.grid(row=1, column=0, pady=5)
+        self.pump_port_label.grid(row=2, column=0, sticky="NSEW")
+        self.pump_port_input.grid(row=3, column=0, pady=5)
+        self.connect_devices_button.grid(row=4, column=0, pady=5)
 
         self.inputs_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=0)
         self.main_controls_frame.grid(row=1, column=0, padx=10)
@@ -199,6 +220,7 @@ class App(tk.Tk):
         self.display_frame.grid(row=0, column=2, rowspan=2, padx=10, pady=20)
         self.status_frame.grid(row=0, column=3, padx=10, pady=0, sticky="EW")
         self.outputs_frame.grid(row=1, column=3, padx=10, pady=0)
+        self.serial_ports_frame.grid(row=2, column=0, padx=10, pady=0)
 
         # Embed matplotlib object
         self.fig, self.ax = plt.subplots(figsize=(4, 3),
@@ -211,6 +233,51 @@ class App(tk.Tk):
         )
         self.canvas.draw()
 
+    def check_serial_port_inputs(self) -> Tuple[bool, str, str]:
+        """Checks if the user has provided valid port addresses.
+
+        Args:
+            None.
+
+        Returns:
+            tuple containing:
+             - bool: True if port addresses are valid, False otherwise.
+             - str: user-provided pH meter port address.
+             - str: user-provided pump port address.
+        """
+        phmeter_port_input_value = self.phmeter_port_input.get()
+        pump_port_input_value = self.pump_port_input.get()
+
+        ports_valid = True
+
+        if platform.system() == "Windows":
+            if not phmeter_port_input_value.startswith('COM'):
+                tk.messagebox.showerror(
+                    "Error", "Invalid pH meter serial port."
+                )
+                ports_valid = False
+
+            if not pump_port_input_value.startswith('COM'):
+                tk.messagebox.showerror(
+                    "Error", "Invalid pump serial port."
+                )
+                ports_valid = False
+
+        if platform.system() == "Linux":
+            if not phmeter_port_input_value.startswith('/dev/tty'):
+                tk.messagebox.showerror(
+                    "Error", "Invalid pH meter serial port."
+                )
+                ports_valid = False
+
+            if not pump_port_input_value.startswith('/dev/tty'):
+                tk.messagebox.showerror(
+                    "Error", "Invalid pump serial port."
+                )
+                ports_valid = False
+
+        return ports_valid, phmeter_port_input_value, pump_port_input_value
+
     def connect_devices(self) -> bool:
         """Opens serial connections to the pump and pH meter.
 
@@ -220,6 +287,10 @@ class App(tk.Tk):
         Returns:
             bool: True if all connections are successful, False otherwise.
         """
+        ports_valid, phmeter_port_loc, pump_port_loc = self.check_serial_port_inputs()
+        if not ports_valid:
+            return
+
         # Serial ports on Windows are exclusive, such that even if the
         # connection fails, you get a permission error when you attempt
         # to reconnect unless you close it first.
@@ -230,7 +301,7 @@ class App(tk.Tk):
             except AttributeError:
                 pass
         
-        pump_serial = self.pump.open_serial_port()
+        pump_serial = self.pump.open_serial_port(port=pump_port_loc)
         if not pump_serial:
             tk.messagebox.showerror(
                 "Error", "Pump serial connection failed."
@@ -244,7 +315,7 @@ class App(tk.Tk):
             )
             return False
 
-        ph_meter_serial = self.ph_meter.open_serial_port()
+        ph_meter_serial = self.ph_meter.open_serial_port(port=phmeter_port_loc)
         if not ph_meter_serial:
             tk.messagebox.showerror(
                 "Error", "pH meter serial connection failed."
@@ -453,6 +524,72 @@ class App(tk.Tk):
             None.
         """
         self.total_alk_output.configure(text="N/A")
+
+    def handle_manual_fill_command(self) -> None:
+        """Calls the pump's fill command and gives a status update.
+        
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        if self._system_state == SystemStates.DISCONNECTED:
+            tk.messagebox.showerror(
+                "Error", "Please connect devices before starting."
+            )
+            return
+
+        if not self._system_state == SystemStates.READY:
+            return
+
+        self.status_label.configure(text="Filling...")
+        self.pump.fill()
+        self.status_label.configure(text="Ready", fg="green")
+
+    def handle_manual_empty_command(self) -> None:
+        """Calls the pump's empty command and gives a status update.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        if self._system_state == SystemStates.DISCONNECTED:
+            tk.messagebox.showerror(
+                "Error", "Please connect devices before starting."
+            )
+            return
+
+        if not self._system_state == SystemStates.READY:
+            return
+
+        self.status_label.configure(text="Emptying...")
+        self.pump.empty()
+        self.status_label.configure(text="Ready", fg="green")
+
+    def handle_manual_wash_command(self) -> None:
+        """Calls the pump's wash command and gives a status update.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        if self._system_state == SystemStates.DISCONNECTED:
+            tk.messagebox.showerror(
+                "Error", "Please connect devices before starting."
+            )
+            return
+
+        if not self._system_state == SystemStates.READY:
+            return
+
+        self.status_label.configure(text="Washing...")
+        self.pump.wash()
+        self.status_label.configure(text="Ready", fg="green")
 
     def update_ta_output(self, value: float) -> None:
         """Updates the total alkalinity reading at the end of a run.
