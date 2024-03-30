@@ -559,7 +559,7 @@ class App(tk.Tk):
         self.pump.fill()
 
         while not self.pump.check_module_ready():
-            self.tksleep(0.5)
+            self.tksleep(0.25)
 
         self.status_label.configure(text="Ready", fg="green")
 
@@ -586,7 +586,7 @@ class App(tk.Tk):
         self.pump.empty()
 
         while not self.pump.check_module_ready():
-            self.tksleep(0.5)
+            self.tksleep(0.25)
 
         self.status_label.configure(text="Ready", fg="green")
 
@@ -613,7 +613,7 @@ class App(tk.Tk):
         self.pump.wash()
 
         while not self.pump.check_module_ready():
-            self.tksleep(0.5)
+            self.tksleep(0.25)
 
         self.status_label.configure(text="Ready", fg="green")
 
