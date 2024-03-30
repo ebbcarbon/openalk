@@ -245,38 +245,43 @@ class App(tk.Tk):
              - str: user-provided pH meter port address.
              - str: user-provided pump port address.
         """
-        phmeter_port_input_value = self.phmeter_port_input.get()
-        pump_port_input_value = self.pump_port_input.get()
+        phmeter_port_value = self.phmeter_port_input.get()
+        pump_port_value = self.pump_port_input.get()
 
         ports_valid = True
 
         if platform.system() == "Windows":
-            if not phmeter_port_input_value.startswith('COM'):
+            if not phmeter_port_value.startswith('COM'):
                 tk.messagebox.showerror(
                     "Error", "Invalid pH meter serial port."
                 )
                 ports_valid = False
 
-            if not pump_port_input_value.startswith('COM'):
+            if not pump_port_value.startswith('COM'):
                 tk.messagebox.showerror(
                     "Error", "Invalid pump serial port."
                 )
                 ports_valid = False
+
+            return ports_valid, phmeter_port_value, pump_port_value
 
         if platform.system() == "Linux":
-            if not phmeter_port_input_value.startswith('/dev/tty'):
+            if not phmeter_port_value.startswith('tty'):
                 tk.messagebox.showerror(
                     "Error", "Invalid pH meter serial port."
                 )
                 ports_valid = False
 
-            if not pump_port_input_value.startswith('/dev/tty'):
+            if not pump_port_value.startswith('tty'):
                 tk.messagebox.showerror(
                     "Error", "Invalid pump serial port."
                 )
                 ports_valid = False
 
-        return ports_valid, phmeter_port_input_value, pump_port_input_value
+            phmeter_linux_port = f"/dev/{phmeter_port_value}"
+            pump_linux_port = f"/dev/{pump_port_value}"
+
+            return ports_valid, phmeter_linux_port, pump_linux_port                                 
 
     def connect_devices(self) -> bool:
         """Opens serial connections to the pump and pH meter.
@@ -306,6 +311,8 @@ class App(tk.Tk):
             tk.messagebox.showerror(
                 "Error", "Pump serial connection failed."
             )
+            self._system_state = SystemStates.DISCONNECTED
+            self.status_label.configure(text="Disconnected", fg="red")
             return False
 
         pump_init = self.pump.initialize_pump()
@@ -313,6 +320,8 @@ class App(tk.Tk):
             tk.messagebox.showerror(
                 "Error", "Pump initialization failed."
             )
+            self._system_state = SystemStates.DISCONNECTED
+            self.status_label.configure(text="Disconnected", fg="red")
             return False
 
         ph_meter_serial = self.ph_meter.open_serial_port(port=phmeter_port_loc)
@@ -320,6 +329,8 @@ class App(tk.Tk):
             tk.messagebox.showerror(
                 "Error", "pH meter serial connection failed."
             )
+            self._system_state = SystemStates.DISCONNECTED
+            self.status_label.configure(text="Disconnected", fg="red")
             return False
 
         self._system_state = SystemStates.READY
@@ -544,7 +555,12 @@ class App(tk.Tk):
             return
 
         self.status_label.configure(text="Filling...")
+        self.tksleep(0.5)
         self.pump.fill()
+
+        while not self.pump.check_module_ready():
+            self.tksleep(0.5)
+
         self.status_label.configure(text="Ready", fg="green")
 
     def handle_manual_empty_command(self) -> None:
@@ -566,7 +582,12 @@ class App(tk.Tk):
             return
 
         self.status_label.configure(text="Emptying...")
+        self.tksleep(0.5)
         self.pump.empty()
+
+        while not self.pump.check_module_ready():
+            self.tksleep(0.5)
+
         self.status_label.configure(text="Ready", fg="green")
 
     def handle_manual_wash_command(self) -> None:
@@ -588,7 +609,12 @@ class App(tk.Tk):
             return
 
         self.status_label.configure(text="Washing...")
+        self.tksleep(0.5)
         self.pump.wash()
+
+        while not self.pump.check_module_ready():
+            self.tksleep(0.5)
+
         self.status_label.configure(text="Ready", fg="green")
 
     def update_ta_output(self, value: float) -> None:
@@ -915,7 +941,7 @@ class App(tk.Tk):
         Returns:
             None.
         """
-        self.after(time * 1000, self._sleep_var.set, 1)
+        self.after(int(time * 1000), self._sleep_var.set, 1)
         self.wait_variable(self._sleep_var)
 
     def quit_program(self):
