@@ -725,7 +725,7 @@ class App(tk.Tk):
         last_ph = titration.get_last_ph()
 
         # Check if last pH reading is below target, if so move to next step
-        if last_ph < FIRST_TITRATION_PH_TARGET:
+        if last_ph <= FIRST_TITRATION_PH_TARGET:
             self.after_cancel(self.initial_titration)
             logger.info("Reached pH target. Moving to second titration step...")
             self.auto_titration(titration)
@@ -758,7 +758,7 @@ class App(tk.Tk):
 
         # Check if last pH reading is below target, if so stop the routine
         # and run calculations
-        if last_ph < SECOND_TITRATION_PH_TARGET:
+        if last_ph <= SECOND_TITRATION_PH_TARGET:
             self.status_label.configure(text="Finished", fg="green")
             logger.info("Titration finished.")
             logger.info(f"Final pH: {last_ph}")
