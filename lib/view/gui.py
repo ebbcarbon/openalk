@@ -22,6 +22,14 @@ logger = logging.getLogger(__name__)
 FIRST_TITRATION_PH_TARGET = 3.8
 SECOND_TITRATION_PH_TARGET = 3.0
 
+class PlatformStrings(Enum):
+    """Enum values to be used when checking platform.system(), in case
+    the values given by the library were ever to change.
+    """
+    WINDOWS = "Windows"
+    LINUX = "Linux"
+
+
 class SystemStates(Enum):
     """Enum values to be used with the self._system_state attribute.
     """
@@ -250,7 +258,7 @@ class App(tk.Tk):
 
         ports_valid = True
 
-        if platform.system() == "Windows":
+        if platform.system() == PlatformStrings.WINDOWS.value:
             if not phmeter_port_value.startswith('COM'):
                 tk.messagebox.showerror(
                     "Error", "Invalid pH meter serial port."
@@ -265,7 +273,7 @@ class App(tk.Tk):
 
             return ports_valid, phmeter_port_value, pump_port_value
 
-        if platform.system() == "Linux":
+        if platform.system() == PlatformStrings.LINUX.value:
             if not phmeter_port_value.startswith('tty'):
                 tk.messagebox.showerror(
                     "Error", "Invalid pH meter serial port."
@@ -292,14 +300,15 @@ class App(tk.Tk):
         Returns:
             bool: True if all connections are successful, False otherwise.
         """
-        ports_valid, phmeter_port_loc, pump_port_loc = self.check_serial_port_inputs()
+        ports_valid, phmeter_port_loc, pump_port_loc = \
+            self.check_serial_port_inputs()
         if not ports_valid:
             return
 
         # Serial ports on Windows are exclusive, such that even if the
         # connection fails, you get a permission error when you attempt
         # to reconnect unless you close it first.
-        if platform.system() == "Windows":
+        if platform.system() == PlatformStrings.WINDOWS.value:
             try:
                 self.pump.serial_port.close()
                 self.ph_meter.serial_port.close()
