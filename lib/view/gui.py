@@ -22,12 +22,14 @@ logger = logging.getLogger(__name__)
 FIRST_TITRATION_PH_TARGET = 3.8
 SECOND_TITRATION_PH_TARGET = 3.0
 
+
 class PlatformStrings(Enum):
     """Enum values to be used when checking platform.system(), in case
     the values given by the library were ever to change.
     """
     WINDOWS = "Windows"
     LINUX = "Linux"
+    MACOS = "Darwin"
 
 
 class SystemStates(Enum):
