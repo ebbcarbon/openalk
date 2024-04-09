@@ -389,7 +389,7 @@ class ModifiedGranTitration:
              - rsq (float): R-squared of the fit.
         """
         # Take volumes of steps with ph under 3.8. Must be numpy arrays
-        volumes = self.volume_array[self.ph_array < 3.8]
+        volumes = self.volume_array[self.ph_array <= 3.8]
         logger.info(f"Volume array: {volumes}")
 
         # Take ph of steps with ph under 3.8. Must be numpy arrays

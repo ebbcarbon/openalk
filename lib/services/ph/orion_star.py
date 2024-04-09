@@ -46,7 +46,19 @@ class OrionStarA215(pHInterface):
         # Meter protocol uses > as the end-of-response character
         self.end_response_char = b'\r>'
 
-    def open_serial_port(self) -> bool:
+    def open_serial_port(self, port: str = None) -> bool:
+        """Opens serial communication to the pH meter.
+
+        Args:
+            port (str): port location on the host. Class default will be
+                used if not specified.
+
+        Returns:
+            bool: True if the connection was successful, False otherwise.
+        """
+        if port:
+            self.serial_port_loc = port
+
         logger.info(f"Connecting to pH meter on port {self.serial_port_loc}...")
 
         try:

@@ -95,7 +95,19 @@ class VersaPumpV6(PumpInterface):
         self.liters_per_step = (self.syringe_size_liters_calib /
                                     self.syringe_position_max)
 
-    def open_serial_port(self) -> bool:
+    def open_serial_port(self, port: str = None) -> bool:
+        """Opens serial communication to the pump.
+
+        Args:
+            port (str): port location on the host. Class default will be
+                used if not specified.
+
+        Returns:
+            bool: True if the connection was successful, False otherwise.
+        """
+        if port:
+            self.serial_port_loc = port
+
         logger.info(f"Connecting to pump on port {self.serial_port_loc}...")
 
         try:
