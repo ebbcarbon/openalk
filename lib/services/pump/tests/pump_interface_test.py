@@ -5,9 +5,9 @@ from lib.services.pump.norgren import ValveStates
 
 def test_init_base_interface() -> None:
     interface = PumpInterface()
-    assert hasattr(interface, 'SERIAL_PORT_LOC')
-    assert hasattr(interface, 'WASH_CYCLES')
-    assert hasattr(interface, 'LITERS_PER_STEP')
+    assert hasattr(interface, 'serial_port_loc')
+    assert hasattr(interface, 'wash_cycles')
+    assert hasattr(interface, 'liters_per_step')
 
 def test_initialize_pump_not_implemented() -> None:
     interface = PumpInterface()

@@ -17,7 +17,7 @@ def test_build_serial_command_A215(mock_init) -> None:
     ph_meter = orion_star.OrionStarA215()
 
     cmd = "GETMEAS"
-    encoded_cmd = ph_meter.build_serial_command(cmd)
+    encoded_cmd = ph_meter._build_serial_command(cmd)
     assert isinstance(encoded_cmd, bytes)
     assert encoded_cmd == b"GETMEAS\r"
 
@@ -29,6 +29,6 @@ def test_check_response_A215(mock_init) -> None:
     dummy_res = "\n \n \nchannelname---SAMPLE,CH-1,pH,7.0,pH,0.0,mV,25.0,C"
     res_encoded = dummy_res.encode("ascii")
 
-    res = ph_meter.check_response(res_encoded)
+    res = ph_meter._check_response(res_encoded)
     assert isinstance(res, dict)
     assert res == {"pH": "7.0", "mV": "0.0", "temp": "25.0"}

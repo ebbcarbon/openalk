@@ -24,7 +24,7 @@ def test_check_volume_available_norgren(mock_init,
                                       mock_get_syringe_position) -> None:
     mock_init.return_value = None
     pump = norgren.VersaPumpV6()
-    pump.LITERS_PER_STEP = 0.00000005
+    pump.liters_per_step = 0.00000005
 
     mock_get_syringe_position.return_value = 0
     volume_available = pump.check_volume_available(volume=0.0025)
@@ -38,12 +38,12 @@ def test_check_volume_available_norgren(mock_init,
 def test_liters_to_steps_norgren(mock_init) -> None:
     mock_init.return_value = None
     pump = norgren.VersaPumpV6()
-    pump.LITERS_PER_STEP = 0.00000005
+    pump.liters_per_step = 0.00000005
 
     dummy_vol = 0.0025
     steps = pump.liters_to_steps(volume=dummy_vol)
     assert isinstance(steps, int)
-    assert steps == (int(dummy_vol / pump.LITERS_PER_STEP))
+    assert steps == (int(dummy_vol / pump.liters_per_step))
 
 @patch.object(norgren.VersaPumpV6, '__init__')
 def test_check_response_norgren(mock_init) -> None:
