@@ -1,4 +1,4 @@
-# Write unit tests for ph_modules logic here
+# Write unit tests for ph modules here
 # Tests MUST start with `test_` for pytest to find them
 
 import pytest
