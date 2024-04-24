@@ -4,4 +4,7 @@
 from lib.view import gui
 
 def test_gui_starts():
+    """Test to make sure the UI starts with all dependencies
+    successfully imported.
+    """
     root = gui.App()
