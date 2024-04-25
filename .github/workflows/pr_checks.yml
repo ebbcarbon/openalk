@@ -19,12 +19,11 @@ jobs:
 
      - name: Install dependencies
        run: |
-         cd openalk
+         pip3 install --upgrade pip
          pip3 install -r requirements.txt
 
      - name: Run tests
        run: |
-         cd openalk
          python -m pytest
 
 
