@@ -26,7 +26,8 @@ SERIAL_REPR = "Serial<id=0xa81c10, open=True>(port='/dev/ttyACM0', \
 DUMMY_RES = b'GETMEAS         \r\n\r\n\rA215 pH,X51250,3.04,ABCDE,12/07/23\
     09:30:40,---,CH-1,pH,4.61,pH,111.2, mV,25.0,C,89.1,%,M100,#1\n\r\r>'
 
-EMPTY_RES = b'GETMEAS         \r\n\r\n\r>'
+EMPTY_RES = b''
+RANDOM_RES = b'vnxio8%@#\r\r\n\r\na;sld4---asdfn\n\r\r>'
 
 @patch('serial.Serial', Mock(return_value=SERIAL_REPR))
 def test_open_serial_port_success_A215() -> None:
@@ -101,10 +102,18 @@ def test_check_response_success_A215() -> None:
     assert isinstance(res, dict)
     assert res == {"pH": "4.61", "mV": "111.2", "temp": "25.0"}
 
-def test_check_response_failure_A215() -> None:
-    """Test that a bad serial response (EMPTY_RES) causes a failure
+def test_check_response_failure_empty_A215() -> None:
+    """Test that a null serial response (EMPTY_RES) causes a failure
     in the expected manner.
     """
     with pytest.raises(IndexError):
         ph_meter = orion_star.OrionStarA215()
         res = ph_meter._check_response(EMPTY_RES)
+
+def test_check_response_failure_random_A215() -> None:
+    """Test that a random serial response (RANDOM_RES) causes a failure
+    in the expected manner.
+    """
+    with pytest.raises(IndexError):
+        ph_meter = orion_star.OrionStarA215()
+        res = ph_meter._check_response(RANDOM_RES)

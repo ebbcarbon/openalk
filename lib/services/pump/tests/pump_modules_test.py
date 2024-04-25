@@ -27,6 +27,8 @@ DUMMY_RES_POS = b'/0`48000'
 DUMMY_RES_VALVE_STATE = b'/0`1'
 
 EMPTY_RES = b''
+BAD_HOST_RES = b'za%!/0axx3`4j*48000'
+BAD_STATUS_RES = b'/0aaax1`zx%&48000'
 
 @patch('serial.Serial', Mock(return_value=SERIAL_REPR))
 def test_open_serial_port_success_norgren() -> None:
@@ -368,10 +370,26 @@ def test_check_response_success_norgren() -> None:
     assert isinstance(res, dict)
     assert res == {"host_ready": True, "module_ready": True, "msg": "48000"}
 
-def test_check_response_failure_norgren() -> None:
-    """Test that a bad serial response (EMPTY_RES) causes a failure
+def test_check_response_failure_empty_norgren() -> None:
+    """Test that a null serial response (EMPTY_RES) causes a failure
     in the expected manner.
     """
-    with pytest.raises(IndexError):
+    with pytest.raises(ValueError):
         pump = norgren.VersaPumpV6()
         res = pump._check_response(EMPTY_RES)
+
+def test_check_response_failure_badhost_norgren() -> None:
+    """Test that an invalid serial response (BAD_HOST_RES) causes a failure
+    in the expected manner.
+    """
+    with pytest.raises(ValueError):
+        pump = norgren.VersaPumpV6()
+        res = pump._check_response(BAD_HOST_RES)
+
+def test_check_response_failure_badstatus_norgren() -> None:
+    """Test that an invalid serial response (BAD_STATUS_RES) causes a failure
+    in the expected manner.
+    """
+    with pytest.raises(ValueError):
+        pump = norgren.VersaPumpV6()
+        res = pump._check_response(BAD_STATUS_RES)
