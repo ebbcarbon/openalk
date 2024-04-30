@@ -1,0 +1,43 @@
+[project]
+name = "openalk"
+version = "1.0.0"
+description = "Open-source instrumentation for measurement of seawater total alkalinity"
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["oceanography", "chemistry", "alkalinity"]
+license = {file = "LICENSE"}
+
+authors = [
+    {name = "Anthony Canalungo"},
+    {name = "Mallory Ringham"},
+    {name = "Dave Peacock"},
+    {name = "Ryan Bloom"}
+]
+
+maintainers = [
+    {name = "Anthony Canalungo", email = "anthony@ebbcarbon.com"}, 
+    {name = "Dave Peacock", email = "dave.peacock@ebbcarbon.com"},
+    {name = "Ryan Bloom", email = "ryan.bloom@ebbcarbon.com"}
+]
+
+dependencies = [
+    "pyserial>=3.5",
+    "numpy>=1.26.4",
+    "matplotlib>=3.8.4",
+    "flake8>=7.0.0",
+    "black>=24.4.1",
+    "pytest>=8.1.1",
+    "pytest-cov>=5.0.0",
+    "pep8-naming>=0.13.3"
+]
+
+[project.urls]
+Repository = "https://github.com/ebbcarbon/openalk.git"
+Issues = "https://github.com/ebbcarbon/openalk/issues"
+
+[build-system]
+requires = ["setuptools >= 59.6.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["lib"]
