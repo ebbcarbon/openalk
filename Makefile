@@ -21,7 +21,7 @@ uninstall:
 .PHONY: test
 test:
 	. venv/bin/activate
-	python -m pytest --cov
+	python -m pytest --cov --cov-report term-missing
 
 .PHONY: lint
 lint:

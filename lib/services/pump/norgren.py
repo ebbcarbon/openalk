@@ -414,10 +414,14 @@ class VersaPumpV6(PumpInterface):
         # Check if communication with the host was successful
         host_status = res_decoded[:2]
         host_ready = True if host_status == '/0' else False
+        if not host_status in ['/0', '/1', '/2']:
+            raise ValueError(f"Invalid response from pump: {res_decoded}")
 
         # Check if the pump module is ready to take commands
         module_status = res_decoded[2]
         module_ready = True if module_status == '`' else False
+        if not module_status in ['`', '@']:
+            raise ValueError(f"Invalid response from pump: {res_decoded}")
 
         # Parse the response message
         msg = res_decoded[3:]
