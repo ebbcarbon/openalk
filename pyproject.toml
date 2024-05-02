@@ -36,7 +36,7 @@ Repository = "https://github.com/ebbcarbon/openalk.git"
 Issues = "https://github.com/ebbcarbon/openalk/issues"
 
 [build-system]
-requires = ["setuptools >= 59.6.0"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
