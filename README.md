@@ -1,4 +1,7 @@
 # OpenAlk
+
+[![Tests](https://github.com/ebbcarbon/openalk/actions/workflows/pr_checks.yml/badge.svg?branch=main)](https://github.com/ebbcarbon/openalk/actions)
+
 ## Unit Tests
 Each service/utils directory should have a `tests` sub-directory. Within this `tests` sub-directory, there should be multiple unit test files corresponding to their services.
 
