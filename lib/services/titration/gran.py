@@ -393,7 +393,7 @@ class ModifiedGranTitration:
         logger.info(f"Volume array: {volumes}")
 
         # Take ph of steps with ph under 3.8. Must be numpy arrays
-        pHs = self.ph_array[self.ph_array < 3.8]
+        pHs = self.ph_array[self.ph_array <= 3.8]
         logger.info(f"pH array: {pHs}")
 
         ygran = self.calc_ygran(pHs, volumes)
