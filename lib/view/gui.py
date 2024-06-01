@@ -73,7 +73,7 @@ class App(tk.Tk):
         Returns:
             None.
         """
-        self.title("Total Alkalinity")
+        self.title("OpenAlk")
 
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
