@@ -1,5 +1,13 @@
-## Project Structure
+## Project Structure and Style
 `lib`, `services`, `utils`, `view`
+
+We generally follow [PEP8](https://peps.python.org/pep-0008/), and prefer Google-style [docstrings](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings) for Python code.
+
+## Issues and Feature Requests 
+Submit as an issue
+
+## Submitting a Pull Request
+Fork, then submit to develop
 
 each module within these directories should have a `tests` sub-directory holding the tests to be run for that module.
 
@@ -21,3 +29,5 @@ To run all unit tests (that are named correctly in correspondence with the namin
     2. Test names: MUST START with `test_`. In order for individual test methods to be found by pytest, they must start with `test_`.
         * To test the happy path for a method named `my_method()`, you could write a test called `def test_my_method__success()`.
         * To test the sad path for that same method, you could write a test called `def test_my_method__fails()`.
+
+For more information about pytest, see the [pytest documentation](https://docs.pytest.org/en/8.2.x/).
