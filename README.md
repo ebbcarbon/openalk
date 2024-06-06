@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/ebbcarbon/openalk/workflows/Tests/badge.svg)](https://github.com/ebbcarbon/openalk/actions)
 
-
+OpenAlk is a low-cost system for measuring total alkalinity of seawater samples utilizing a combination of off-the-shelf hardware and open-source software, meant to increase the convenience, speed, and accessibility of alkalinity measurement. The system generally follows the process outlined in Dickson [SOP 3B](https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/oceans/Handbook_2007.html) for determining alkalinity by open-cell titration.
 
 ## User Guide
 
