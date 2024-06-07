@@ -2,19 +2,17 @@
 
 [![Tests](https://github.com/ebbcarbon/openalk/workflows/Tests/badge.svg)](https://github.com/ebbcarbon/openalk/actions)
 
-## Unit Tests
-Each service/utils directory should have a `tests` sub-directory. Within this `tests` sub-directory, there should be multiple unit test files corresponding to their services.
+OpenAlk is a low-cost system for measuring total alkalinity of seawater samples utilizing a combination of off-the-shelf hardware and open-source software, meant to increase the convenience, speed, and accessibility of alkalinity measurement. The system generally follows the process outlined in Dickson [SOP 3B](https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/oceans/Handbook_2007.html) for determining alkalinity by open-cell titration, and is fully automated aside from requiring some experimental setup steps from the user.
 
-ALL new pull requests and logic changes should come with unit tests to confirm these changes work. Development work is NOT complete without unit tests.
+## User Guide
+Instructions for setting up the hardware and installing the software can be found in the [user guide](docs/userguide.pdf), along with
+SOP documents detailing basic benchtop usage and a bill of materials (BOM) showing what you'll need to get started.
 
-#### Running test suite
-To run all unit tests (that are named correctly in correspondence with the naming requirements outlined below), simply run `pytest` command from the base directory in your terminal.
+## Feature Requests, Issues, and Pull Requests
+See [CONTRIBUTING.md](CONTRIBUTING.md) for more info on how to submit an issue, request a feature be added, or contribute your own code. 
 
-#### Test Naming Requirements
-* In order for your unit tests to be run, two naming conventions MUST be followed
-    1. File names: MUST END with `_test.py`. Only files that end with `_test.py` will be collected and found by pytest.
-        * We will follow the format of copying the file to be tested's name and appending `_test.py` to that.
-        * Example: In order to test a file named `my_service_file.py`, there will be a corresponding test file named `my_service_file_test.py`
-    2. Test names: MUST START with `test_`. In order for individual test methods to be found by pytest, they must start with `test_`.
-        * To test the happy path for a method named `my_method()`, you could write a test called `def test_my_method__success()`.
-        * To test the sad path for that same method, you could write a test called `def test_my_method__fails()`.
+We welcome any suggestions for how to improve the system, and encourage you to raise any issues you find!
+
+## License
+The software portion of this project is licensed under a [GPLv3](https://www.gnu.org/licenses/gpl-3.0.en.html) license, the design documents and instructions are licensed
+under a Creative Commons [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) license.
