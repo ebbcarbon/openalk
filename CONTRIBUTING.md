@@ -16,7 +16,7 @@ We follow a ["Gitflow"](https://www.atlassian.com/git/tutorials/comparing-workfl
 
 To contribute code, follow these steps: 
 - Fork the current state of the `develop` branch into your own repository 
-- Make your own branch with the schema `feature/<description>`, with the description being as short as possible while still clarifying what the branch contains.
+- Name your own branch with the schema `feature/<description>`, with the description being as short as possible while still clarifying what the branch contains.
 - Submit a [pull request](https://github.com/ebbcarbon/openalk/pulls) against this repository's `develop` branch from your `feature` branch.
 
 Any changes we merge will require pytest-compatible unit tests before being incorporated. See the section below for more information.
